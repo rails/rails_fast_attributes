@@ -171,12 +171,12 @@ module ActiveRecord
       expect(first).not_to eq(1)
     end
 
-    xspecify "an attribute has not been read by default" do
+    specify "an attribute has not been read by default" do
       attribute = Attribute.from_database(:foo, 1, Type::Value.new)
       expect(attribute).not_to have_been_read
     end
 
-    xspecify "an attribute has been read when its value is calculated" do
+    specify "an attribute has been read when its value is calculated" do
       attribute = Attribute.from_database(:foo, 1, Type::Value.new)
       attribute.value
       expect(attribute).to have_been_read

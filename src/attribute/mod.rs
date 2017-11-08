@@ -104,6 +104,14 @@ impl Attribute {
         Self::from_database(self.name(), value, self.ty())
     }
 
+    fn has_been_read(&self) -> bool {
+        if let Attribute::Populated { value: Some(_), .. } = *self {
+            true
+        } else {
+            false
+        }
+    }
+
     fn initialize_dup(&mut self, other: &Attribute) {
         use self::Attribute::*;
         *self = match *other {
@@ -164,8 +172,7 @@ impl PartialEq for Attribute {
                     ..
                 },
             ) => {
-                source == source2 && ruby_equals(name, name2)
-                    && ruby_equals(raw_value, val2)
+                source == source2 && ruby_equals(name, name2) && ruby_equals(raw_value, val2)
                     && ruby_equals(ty, ty2)
             }
             (
