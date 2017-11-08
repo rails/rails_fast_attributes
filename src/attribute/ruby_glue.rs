@@ -25,6 +25,12 @@ pub unsafe fn init() {
     );
     ffi::rb_define_singleton_method(attribute, cstr!("from_user"), from_user as *const _, 3);
 
+    ffi::rb_define_method(
+        attribute,
+        cstr!("value_before_type_cast"),
+        value_before_type_cast as *const _,
+        0,
+    );
     ffi::rb_define_method(attribute, cstr!("value"), value as *const _, 0);
 }
 
@@ -44,6 +50,11 @@ extern "C" fn from_user(
     ty: ffi::VALUE,
 ) -> ffi::VALUE {
     Attribute::from_user(name, value, ty).into_ruby()
+}
+
+extern "C" fn value_before_type_cast(this: ffi::VALUE) -> ffi::VALUE {
+    let this = unsafe { get_struct::<Attribute>(this) };
+    this.value_before_type_cast()
 }
 
 extern "C" fn value(this: ffi::VALUE) -> ffi::VALUE {

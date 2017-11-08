@@ -33,6 +33,10 @@ impl Attribute {
         }
     }
 
+    fn value_before_type_cast(&self) -> ffi::VALUE {
+        self.raw_value
+    }
+
     fn value(&mut self) -> ffi::VALUE {
         use self::Source::*;
 

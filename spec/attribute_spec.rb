@@ -37,15 +37,17 @@ module ActiveRecord
       expect(second_read).to equal(type_cast_value)
     end
 
-    xspecify "reading memoizes falsy values" do
+    specify "reading memoizes falsy values" do
       allow(type).to receive(:deserialize).and_return(false)
       attribute = Attribute.from_database(nil, "whatever", type)
 
       attribute.value
       attribute.value
+
+      expect(type).to have_received(:deserialize).once
     end
 
-    xspecify "read_before_typecast returns the given value" do
+    specify "read_before_typecast returns the given value" do
       attribute = Attribute.from_database(nil, "raw value", type)
 
       raw_value = attribute.value_before_type_cast
