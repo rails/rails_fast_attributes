@@ -23,7 +23,7 @@ impl Default for Attribute {
 
 #[derive(Clone, PartialEq, Eq)]
 pub enum Source {
-    FromUser,
+    FromUser(Box<Attribute>),
     FromDatabase,
 }
 
@@ -38,12 +38,12 @@ impl Attribute {
         }
     }
 
-    fn from_user(name: ffi::VALUE, raw_value: ffi::VALUE, ty: ffi::VALUE) -> Self {
+    fn from_user(name: ffi::VALUE, raw_value: ffi::VALUE, ty: ffi::VALUE, original_attribute: Attribute) -> Self {
         Attribute::Populated {
             name,
             raw_value,
             ty,
-            source: Source::FromUser,
+            source: Source::FromUser(Box::new(original_attribute)),
             value: None,
         }
     }
@@ -62,7 +62,6 @@ impl Attribute {
 
     fn value(&mut self) -> ffi::VALUE {
         use self::Attribute::*;
-        use self::Source::*;
 
         unsafe {
             match *self {
@@ -74,10 +73,7 @@ impl Attribute {
                     ..
                 } => {
                     if value.is_none() {
-                        *value = Some(match *source {
-                            FromDatabase => ffi::rb_funcall(ty, id!("deserialize"), 1, raw_value),
-                            FromUser => ffi::rb_funcall(ty, id!("cast"), 1, raw_value),
-                        });
+                        *value = Some(cast_value(source, ty, raw_value));
                     }
                     value.unwrap()
                 }
@@ -96,8 +92,24 @@ impl Attribute {
         unsafe { ffi::rb_funcall(ty, id!("serialize"), 1, value) }
     }
 
+    fn is_changed(&mut self) -> bool {
+        self.is_changed_from_assignment() || self.is_changed_in_place()
+    }
+
+    fn is_changed_in_place(&mut self) -> bool {
+        if !self.has_been_read() {
+            return false;
+        }
+
+        unsafe {
+            let orig = self.original_value_for_database();
+            let value = self.value();
+            ffi::RTEST(ffi::rb_funcall(self.ty(), id!("changed_in_place?"), 2, orig, value))
+        }
+    }
+
     fn with_value_from_user(&self, value: ffi::VALUE) -> Self {
-        Self::from_user(self.name(), value, self.ty())
+        Self::from_user(self.name(), value, self.ty(), self.clone())
     }
 
     fn with_value_from_database(&self, value: ffi::VALUE) -> Self {
@@ -145,6 +157,56 @@ impl Attribute {
             Attribute::Uninitialized { ty, .. } => ty,
         }
     }
+
+    fn is_changed_from_assignment(&mut self) -> bool {
+        if !self.has_been_assigned() {
+            return false;
+        }
+
+        let ty = self.ty();
+        let orig = self.original_value();
+        let value = self.value();
+        let raw_value = self.value_before_type_cast();
+
+        unsafe {
+            ffi::RTEST(ffi::rb_funcall(ty, id!("changed?"), 3, orig, value, raw_value))
+        }
+    }
+
+    fn has_been_assigned(&self) -> bool {
+        if let Attribute::Populated { source: Source::FromUser(_), .. } = *self {
+            true
+        } else {
+            false
+        }
+    }
+
+    fn original_value(&self) -> ffi::VALUE {
+        use self::Attribute::*;
+        use self::Source::*;
+        match *self {
+            Populated {
+                ref source,
+                ty,
+                raw_value,
+                ..
+            } => match *source {
+                FromUser(ref orig) => orig.original_value(),
+                FromDatabase => cast_value(source, ty, raw_value),
+            }
+            Uninitialized { .. } => unsafe { ffi::Qnil }, // FIXME: This is a marker object in Ruby
+        }
+    }
+
+    fn original_value_for_database(&self) -> ffi::VALUE {
+        use self::Attribute::*;
+        use self::Source::*;
+        match *self {
+            Populated { source: FromUser(ref orig), .. } => orig.original_value_for_database(),
+            Populated { source: FromDatabase, raw_value, .. } => raw_value,
+            Uninitialized { .. } => unsafe { ffi::Qnil },
+        }
+    }
 }
 
 impl PartialEq for Attribute {
@@ -189,4 +251,14 @@ impl PartialEq for Attribute {
 
 pub unsafe fn init() {
     self::ruby_glue::init();
+}
+
+fn cast_value(source: &Source, ty: ffi::VALUE, raw_value: ffi::VALUE) -> ffi::VALUE {
+    use self::Source::*;
+    unsafe {
+        match *source {
+            FromDatabase => ffi::rb_funcall(ty, id!("deserialize"), 1, raw_value),
+            FromUser(_) => ffi::rb_funcall(ty, id!("cast"), 1, raw_value),
+        }
+    }
 }

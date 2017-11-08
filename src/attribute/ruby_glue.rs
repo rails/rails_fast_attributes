@@ -24,7 +24,7 @@ pub unsafe fn init() {
         from_database as *const _,
         3,
     );
-    ffi::rb_define_singleton_method(attribute, cstr!("from_user"), from_user as *const _, 3);
+    ffi::rb_define_singleton_method(attribute, cstr!("from_user"), from_user as *const _, 4);
     ffi::rb_define_singleton_method(
         attribute,
         cstr!("uninitialized"),
@@ -43,6 +43,18 @@ pub unsafe fn init() {
         attribute,
         cstr!("value_for_database"),
         value_for_database as *const _,
+        0,
+    );
+    ffi::rb_define_method(
+        attribute,
+        cstr!("changed?"),
+        changed_eh as *const _,
+        0,
+    );
+    ffi::rb_define_method(
+        attribute,
+        cstr!("changed_in_place?"),
+        changed_in_place_eh as *const _,
         0,
     );
     ffi::rb_define_method(
@@ -72,6 +84,16 @@ pub unsafe fn init() {
     );
 }
 
+fn from_value(value: ffi::VALUE) -> Attribute {
+    unsafe {
+        if ffi::rb_obj_class(value) == Attribute::class() {
+            get_struct::<Attribute>(value).clone()
+        } else {
+            ffi::rb_raise(ffi::rb_eRuntimeError, cstr!("Expected an `Attribute`"))
+        }
+    }
+}
+
 extern "C" fn from_database(
     _class: ffi::VALUE,
     name: ffi::VALUE,
@@ -86,8 +108,10 @@ extern "C" fn from_user(
     name: ffi::VALUE,
     value: ffi::VALUE,
     ty: ffi::VALUE,
+    original_attribute: ffi::VALUE,
 ) -> ffi::VALUE {
-    Attribute::from_user(name, value, ty).into_ruby()
+    let original_attribute = from_value(original_attribute);
+    Attribute::from_user(name, value, ty, original_attribute).into_ruby()
 }
 
 extern "C" fn uninitialized(_class: ffi::VALUE, name: ffi::VALUE, ty: ffi::VALUE) -> ffi::VALUE {
@@ -107,6 +131,16 @@ extern "C" fn value(this: ffi::VALUE) -> ffi::VALUE {
 extern "C" fn value_for_database(this: ffi::VALUE) -> ffi::VALUE {
     let this = unsafe { get_struct::<Attribute>(this) };
     this.value_for_database()
+}
+
+extern "C" fn changed_eh(this: ffi::VALUE) -> ffi::VALUE {
+    let this = unsafe { get_struct::<Attribute>(this) };
+    to_ruby_bool(this.is_changed())
+}
+
+extern "C" fn changed_in_place_eh(this: ffi::VALUE) -> ffi::VALUE {
+    let this = unsafe { get_struct::<Attribute>(this) };
+    to_ruby_bool(this.is_changed_in_place())
 }
 
 extern "C" fn with_value_from_user(this: ffi::VALUE, value: ffi::VALUE) -> ffi::VALUE {

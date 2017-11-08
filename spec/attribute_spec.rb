@@ -17,7 +17,7 @@ module ActiveRecord
 
     specify "from_user + read type casts from user" do
       allow(type).to receive(:cast).and_return("type cast from user")
-      attribute = Attribute.from_user(nil, "a value", type)
+      attribute = attribute_from_user(nil, "a value", type)
 
       type_cast_value = attribute.value
 
@@ -66,7 +66,7 @@ module ActiveRecord
     specify "from_user + read_for_database type casts from the user to the database" do
       allow(type).to receive(:cast).and_return("read from user")
       allow(type).to receive(:serialize).and_return("ready for database")
-      attribute = Attribute.from_user(nil, "whatever", type)
+      attribute = attribute_from_user(nil, "whatever", type)
 
       serialize = attribute.value_for_database
 
@@ -120,7 +120,7 @@ module ActiveRecord
     end
 
     specify "with_value_from_database returns a new attribute with the value from the database" do
-      old = Attribute.from_user(nil, "old", MyType.new)
+      old = attribute_from_user(nil, "old", MyType.new)
       new = old.with_value_from_database("new")
 
       expect(old.value).to eq("old from user")
@@ -166,7 +166,7 @@ module ActiveRecord
 
     specify "attributes do not equal attributes of other classes" do
       first = Attribute.from_database(:foo, 1, Type::Integer.new)
-      second = Attribute.from_user(:foo, 1, Type::Integer.new)
+      second = attribute_from_user(:foo, 1, Type::Integer.new)
       expect(second).not_to eq(first)
       expect(first).not_to eq(1)
     end
@@ -182,35 +182,36 @@ module ActiveRecord
       expect(attribute).to have_been_read
     end
 
-    xspecify "an attribute is not changed if it hasn't been assigned or mutated" do
+    specify "an attribute is not changed if it hasn't been assigned or mutated" do
       attribute = Attribute.from_database(:foo, 1, Type::Value.new)
 
       expect(attribute).not_to be_changed
     end
 
-    xspecify "an attribute is changed if it's been assigned a new value" do
+    specify "an attribute is changed if it's been assigned a new value" do
       attribute = Attribute.from_database(:foo, 1, Type::Value.new)
       changed = attribute.with_value_from_user(2)
 
       expect(changed).to be_changed
     end
 
-    xspecify "an attribute is not changed if it's assigned the same value" do
+    specify "an attribute is not changed if it's assigned the same value" do
       attribute = Attribute.from_database(:foo, 1, Type::Value.new)
       unchanged = attribute.with_value_from_user(1)
 
       expect(unchanged).not_to be_changed
     end
 
-    xspecify "an attribute can not be mutated if it has not been read,
+    specify "an attribute can not be mutated if it has not been read,
         and skips expensive calculations" do
       type_which_raises_from_all_methods = Object.new
       attribute = Attribute.from_database(:foo, "bar", type_which_raises_from_all_methods)
 
       expect(attribute).not_to be_changed_in_place
+      expect(attribute).not_to be_changed
     end
 
-    xspecify "an attribute is changed if it has been mutated" do
+    specify "an attribute is changed if it has been mutated" do
       attribute = Attribute.from_database(:foo, "bar", Type::String.new)
       attribute.value << "!"
 
@@ -246,6 +247,10 @@ module ActiveRecord
       attribute.value << "1"
 
       expect(attribute.with_type(Type::Integer.new).value).to eq(1)
+    end
+
+    def attribute_from_user(name, value, type)
+      Attribute.from_user(name, value, type, Attribute.uninitialized(name, type))
     end
   end
 end
