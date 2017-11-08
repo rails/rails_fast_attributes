@@ -55,7 +55,7 @@ module ActiveRecord
       expect(raw_value).to eq("raw value")
     end
 
-    xspecify "from_database + read_for_database type casts to and from database" do
+    specify "from_database + read_for_database type casts to and from database" do
       allow(type).to receive(:deserialize).and_return("read from database")
       allow(type).to receive(:serialize).and_return("ready for database")
       attribute = Attribute.from_database(nil, "whatever", type)

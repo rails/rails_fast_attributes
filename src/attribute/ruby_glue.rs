@@ -32,6 +32,7 @@ pub unsafe fn init() {
         0,
     );
     ffi::rb_define_method(attribute, cstr!("value"), value as *const _, 0);
+    ffi::rb_define_method(attribute, cstr!("value_for_database"), value_for_database as *const _, 0);
 }
 
 extern "C" fn from_database(
@@ -60,4 +61,9 @@ extern "C" fn value_before_type_cast(this: ffi::VALUE) -> ffi::VALUE {
 extern "C" fn value(this: ffi::VALUE) -> ffi::VALUE {
     let this = unsafe { get_struct::<Attribute>(this) };
     this.value()
+}
+
+extern "C" fn value_for_database(this: ffi::VALUE) -> ffi::VALUE {
+    let this = unsafe { get_struct::<Attribute>(this) };
+    this.value_for_database()
 }

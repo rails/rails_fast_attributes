@@ -50,6 +50,13 @@ impl Attribute {
         }
         self.value.unwrap()
     }
+
+    fn value_for_database(&mut self) -> ffi::VALUE {
+        let value = self.value();
+        unsafe {
+            ffi::rb_funcall(self.ty, id!("serialize"), 1, value)
+        }
+    }
 }
 
 pub unsafe fn init() {
