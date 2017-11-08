@@ -38,7 +38,12 @@ impl Attribute {
         }
     }
 
-    fn from_user(name: ffi::VALUE, raw_value: ffi::VALUE, ty: ffi::VALUE, original_attribute: Attribute) -> Self {
+    fn from_user(
+        name: ffi::VALUE,
+        raw_value: ffi::VALUE,
+        ty: ffi::VALUE,
+        original_attribute: Attribute,
+    ) -> Self {
         Attribute::Populated {
             name,
             raw_value,
@@ -104,7 +109,13 @@ impl Attribute {
         unsafe {
             let orig = self.original_value_for_database();
             let value = self.value();
-            ffi::RTEST(ffi::rb_funcall(self.ty(), id!("changed_in_place?"), 2, orig, value))
+            ffi::RTEST(ffi::rb_funcall(
+                self.ty(),
+                id!("changed_in_place?"),
+                2,
+                orig,
+                value,
+            ))
         }
     }
 
@@ -123,6 +134,30 @@ impl Attribute {
 
     fn with_value_from_database(&self, value: ffi::VALUE) -> Self {
         Self::from_database(self.name(), value, self.ty())
+    }
+
+    fn with_type(&mut self, ty: ffi::VALUE) -> Self {
+        use self::Attribute::*;
+
+        if self.is_changed_in_place() {
+            Self::from_user(self.name(), self.value(), ty, self.clone())
+        } else {
+            match *self {
+                Populated {
+                    name,
+                    raw_value,
+                    ref source,
+                    ..
+                } => Populated {
+                    name,
+                    raw_value,
+                    source: source.clone(),
+                    ty,
+                    value: None,
+                },
+                Uninitialized { name, .. } => Uninitialized { name, ty },
+            }
+        }
     }
 
     fn has_been_read(&self) -> bool {
@@ -178,12 +213,23 @@ impl Attribute {
         let raw_value = self.value_before_type_cast();
 
         unsafe {
-            ffi::RTEST(ffi::rb_funcall(ty, id!("changed?"), 3, orig, value, raw_value))
+            ffi::RTEST(ffi::rb_funcall(
+                ty,
+                id!("changed?"),
+                3,
+                orig,
+                value,
+                raw_value,
+            ))
         }
     }
 
     fn has_been_assigned(&self) -> bool {
-        if let Attribute::Populated { source: Source::FromUser(_), .. } = *self {
+        if let Attribute::Populated {
+            source: Source::FromUser(_),
+            ..
+        } = *self
+        {
             true
         } else {
             false
@@ -202,7 +248,7 @@ impl Attribute {
             } => match *source {
                 FromUser(ref orig) => orig.original_value(),
                 FromDatabase => cast_value(source, ty, raw_value),
-            }
+            },
             Uninitialized { .. } => unsafe { ffi::Qnil }, // FIXME: This is a marker object in Ruby
         }
     }
@@ -211,8 +257,15 @@ impl Attribute {
         use self::Attribute::*;
         use self::Source::*;
         match *self {
-            Populated { source: FromUser(ref orig), .. } => orig.original_value_for_database(),
-            Populated { source: FromDatabase, raw_value, .. } => raw_value,
+            Populated {
+                source: FromUser(ref orig),
+                ..
+            } => orig.original_value_for_database(),
+            Populated {
+                source: FromDatabase,
+                raw_value,
+                ..
+            } => raw_value,
             Uninitialized { .. } => unsafe { ffi::Qnil },
         }
     }

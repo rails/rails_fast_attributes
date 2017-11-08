@@ -242,7 +242,7 @@ module ActiveRecord
       expect { attribute.with_value_from_user(1) }.to raise_error(ArgumentError)
     end
 
-    xspecify "with_type preserves mutations" do
+    specify "with_type preserves mutations" do
       attribute = Attribute.from_database(:foo, "".dup, Type::Value.new)
       attribute.value << "1"
 
