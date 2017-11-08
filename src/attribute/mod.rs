@@ -2,6 +2,7 @@ use ffi;
 
 mod ruby_glue;
 
+#[derive(Clone)]
 pub struct Attribute {
     raw_value: ffi::VALUE,
     ty: ffi::VALUE,
@@ -9,6 +10,14 @@ pub struct Attribute {
     value: Option<ffi::VALUE>,
 }
 
+impl Default for Attribute {
+    fn default() -> Self {
+        let nil = unsafe { ffi::Qnil };
+        Self::from_database(nil, nil, nil)
+    }
+}
+
+#[derive(Clone)]
 pub enum Source {
     FromUser,
     FromDatabase,
@@ -55,6 +64,13 @@ impl Attribute {
         let value = self.value();
         unsafe {
             ffi::rb_funcall(self.ty, id!("serialize"), 1, value)
+        }
+    }
+
+    fn initialize_dup(&mut self, other: &Attribute) {
+        *self = other.clone();
+        if let Some(value) = self.value {
+            self.value = Some(unsafe { ffi::rb_obj_dup(value) });
         }
     }
 }

@@ -17,6 +17,7 @@ pub unsafe fn init() {
     let attribute = ffi::rb_define_class_under(::module(), cstr!("Attribute"), ffi::rb_cObject);
     ATTRIBUTE = Some(attribute);
 
+    ffi::rb_define_alloc_func(attribute, Some(Attribute::allocate));
     ffi::rb_define_singleton_method(
         attribute,
         cstr!("from_database"),
@@ -33,6 +34,7 @@ pub unsafe fn init() {
     );
     ffi::rb_define_method(attribute, cstr!("value"), value as *const _, 0);
     ffi::rb_define_method(attribute, cstr!("value_for_database"), value_for_database as *const _, 0);
+    ffi::rb_define_method(attribute, cstr!("initialize_dup"), initialize_dup as *const _, 1);
 }
 
 extern "C" fn from_database(
@@ -66,4 +68,11 @@ extern "C" fn value(this: ffi::VALUE) -> ffi::VALUE {
 extern "C" fn value_for_database(this: ffi::VALUE) -> ffi::VALUE {
     let this = unsafe { get_struct::<Attribute>(this) };
     this.value_for_database()
+}
+
+extern "C" fn initialize_dup(this: ffi::VALUE, other: ffi::VALUE) -> ffi::VALUE {
+    let this = unsafe { get_struct::<Attribute>(this) };
+    let other = unsafe { get_struct::<Attribute>(other) };
+    this.initialize_dup(other);
+    unsafe { ffi::Qnil }
 }

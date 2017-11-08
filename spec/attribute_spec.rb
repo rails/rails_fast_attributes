@@ -25,9 +25,7 @@ module ActiveRecord
     end
 
     specify "reading memoizes the value" do
-      def type.deserialize(*)
-        "from the database"
-      end
+      allow(type).to receive(:deserialize) { "from the database".dup }
       attribute = Attribute.from_database(nil, "whatever", type)
 
       type_cast_value = attribute.value
@@ -65,7 +63,7 @@ module ActiveRecord
       expect(serialize).to eq("ready for database")
     end
 
-    xspecify "from_user + read_for_database type casts from the user to the database" do
+    specify "from_user + read_for_database type casts from the user to the database" do
       allow(type).to receive(:cast).and_return("read from user")
       allow(type).to receive(:serialize).and_return("ready for database")
       attribute = Attribute.from_user(nil, "whatever", type)
@@ -75,8 +73,8 @@ module ActiveRecord
       expect(serialize).to eq("ready for database")
     end
 
-    xspecify "duping dups the value" do
-      allow(type).to receive(:deserialize).and_return("type cast".dup)
+    specify "duping dups the value" do
+      allow(type).to receive(:deserialize) { "type cast" }
       attribute = Attribute.from_database(nil, "a value", type)
 
       value_from_orig = attribute.value
@@ -87,14 +85,15 @@ module ActiveRecord
       expect(value_from_clone).to eq("type cast")
     end
 
-    xspecify "duping does not dup the value if it is not dupable" do
+    specify "duping does not dup the value if it is not dupable" do
       allow(type).to receive(:deserialize).and_return(false)
       attribute = Attribute.from_database(nil, "a value", type)
 
       expect(attribute.dup.value).to equal(attribute.value)
     end
 
-    xspecify "duping does not eagerly type cast if we have not yet type cast" do
+    specify "duping does not eagerly type cast if we have not yet type cast" do
+      expect(type).not_to receive(:deserialize)
       attribute = Attribute.from_database(nil, "a value", type)
       attribute.dup
     end
