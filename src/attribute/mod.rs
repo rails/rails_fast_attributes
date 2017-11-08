@@ -114,7 +114,11 @@ impl Attribute {
     }
 
     fn with_value_from_user(&self, value: ffi::VALUE) -> Self {
-        Self::from_user(self.name(), value, self.ty(), self.clone())
+        let ty = self.ty();
+        unsafe {
+            ffi::rb_funcall(ty, id!("assert_valid_value"), 1, value);
+        }
+        Self::from_user(self.name(), value, ty, self.clone())
     }
 
     fn with_value_from_database(&self, value: ffi::VALUE) -> Self {

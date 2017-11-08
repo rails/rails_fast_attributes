@@ -228,7 +228,7 @@ module ActiveRecord
       expect(forgotten).not_to be_changed
     end
 
-    xspecify "with_value_from_user validates the value" do
+    specify "with_value_from_user validates the value" do
       type = Type::Value.new
       type.define_singleton_method(:assert_valid_value) do |value|
         if value == 1
