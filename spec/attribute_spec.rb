@@ -127,7 +127,7 @@ module ActiveRecord
       expect(new.value).to eq("new from database")
     end
 
-    xspecify "uninitialized attributes yield their name if a block is given to value" do
+    specify "uninitialized attributes yield their name if a block is given to value" do
       block = proc { |name| name.to_s + "!" }
       foo = Attribute.uninitialized(:foo, nil)
       bar = Attribute.uninitialized(:bar, nil)
@@ -136,7 +136,7 @@ module ActiveRecord
       expect(bar.value(&block)).to eq("bar!")
     end
 
-    xspecify "uninitialized attributes have no value" do
+    specify "uninitialized attributes have no value" do
       expect(Attribute.uninitialized(:foo, nil).value).to be_nil
     end
 

@@ -25,6 +25,12 @@ pub unsafe fn init() {
         3,
     );
     ffi::rb_define_singleton_method(attribute, cstr!("from_user"), from_user as *const _, 3);
+    ffi::rb_define_singleton_method(
+        attribute,
+        cstr!("uninitialized"),
+        uninitialized as *const _,
+        2,
+    );
 
     ffi::rb_define_method(
         attribute,
@@ -75,6 +81,10 @@ extern "C" fn from_user(
     ty: ffi::VALUE,
 ) -> ffi::VALUE {
     Attribute::from_user(name, value, ty).into_ruby()
+}
+
+extern "C" fn uninitialized(_class: ffi::VALUE, name: ffi::VALUE, ty: ffi::VALUE) -> ffi::VALUE {
+    Attribute::uninitialized(name, ty).into_ruby()
 }
 
 extern "C" fn value_before_type_cast(this: ffi::VALUE) -> ffi::VALUE {
