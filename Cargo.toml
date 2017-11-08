@@ -1,0 +1,6 @@
+[package]
+name = "rails-fast-attributes"
+version = "0.1.0"
+authors = ["Sean Griffin <sean@seantheprogrammer.com>"]
+
+[dependencies]
