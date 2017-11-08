@@ -15,7 +15,7 @@ module ActiveRecord
       expect(type_cast_value).to eq("type cast from database")
     end
 
-    xspecify "from_user + read type casts from user" do
+    specify "from_user + read type casts from user" do
       allow(type).to receive(:cast).and_return("type cast from user")
       attribute = Attribute.from_user(nil, "a value", type)
 

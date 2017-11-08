@@ -23,6 +23,12 @@ pub unsafe fn init() {
         from_database as *const _,
         3,
     );
+    ffi::rb_define_singleton_method(
+        attribute,
+        cstr!("from_user"),
+        from_user as *const _,
+        3,
+    );
 
     ffi::rb_define_method(attribute, cstr!("value"), value as *const _, 0);
 }
@@ -34,6 +40,15 @@ extern "C" fn from_database(
     ty: ffi::VALUE,
 ) -> ffi::VALUE {
     Attribute::from_database(name, value, ty).into_ruby()
+}
+
+extern "C" fn from_user(
+    _class: ffi::VALUE,
+    name: ffi::VALUE,
+    value: ffi::VALUE,
+    ty: ffi::VALUE,
+) -> ffi::VALUE {
+    Attribute::from_user(name, value, ty).into_ruby()
 }
 
 extern "C" fn value(this: ffi::VALUE) -> ffi::VALUE {
