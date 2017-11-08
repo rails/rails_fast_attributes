@@ -1,6 +1,9 @@
 [package]
-name = "rails-fast-attributes"
+name = "rails_fast_attributes"
 version = "0.1.0"
 authors = ["Sean Griffin <sean@seantheprogrammer.com>"]
+
+[lib]
+crate-type = ["cdylib"]
 
 [dependencies]

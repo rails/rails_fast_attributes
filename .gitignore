@@ -9,6 +9,9 @@
 
 # rspec failure tracking
 .rspec_status
+
+# build artifacts
 /target/
 **/*.rs.bk
 Cargo.lock
+/lib/rails_fast_attributes/native.*
