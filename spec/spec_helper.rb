@@ -1,4 +1,5 @@
 require "bundler/setup"
+require "active_record"
 require "rails_fast_attributes"
 
 RSpec.configure do |config|
