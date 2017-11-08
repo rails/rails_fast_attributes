@@ -140,34 +140,35 @@ module ActiveRecord
       expect(Attribute.uninitialized(:foo, nil).value).to be_nil
     end
 
-    xspecify "attributes equal other attributes with the same constructor arguments" do
+    specify "attributes equal other attributes with the same constructor arguments" do
       first = Attribute.from_database(:foo, 1, Type::Integer.new)
       second = Attribute.from_database(:foo, 1, Type::Integer.new)
       expect(second).to eq(first)
     end
 
-    xspecify "attributes do not equal attributes with different names" do
+    specify "attributes do not equal attributes with different names" do
       first = Attribute.from_database(:foo, 1, Type::Integer.new)
       second = Attribute.from_database(:bar, 1, Type::Integer.new)
       expect(second).not_to eq(first)
     end
 
-    xspecify "attributes do not equal attributes with different types" do
+    specify "attributes do not equal attributes with different types" do
       first = Attribute.from_database(:foo, 1, Type::Integer.new)
       second = Attribute.from_database(:foo, 1, Type::Float.new)
       expect(second).not_to eq(first)
     end
 
-    xspecify "attributes do not equal attributes with different values" do
+    specify "attributes do not equal attributes with different values" do
       first = Attribute.from_database(:foo, 1, Type::Integer.new)
       second = Attribute.from_database(:foo, 2, Type::Integer.new)
       expect(second).not_to eq(first)
     end
 
-    xspecify "attributes do not equal attributes of other classes" do
+    specify "attributes do not equal attributes of other classes" do
       first = Attribute.from_database(:foo, 1, Type::Integer.new)
       second = Attribute.from_user(:foo, 1, Type::Integer.new)
       expect(second).not_to eq(first)
+      expect(first).not_to eq(1)
     end
 
     xspecify "an attribute has not been read by default" do

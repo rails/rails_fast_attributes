@@ -7,3 +7,11 @@ pub unsafe fn get_struct<'a, T>(ptr: ffi::VALUE) -> &'a mut T {
             ffi::rb_raise(ffi::rb_eRuntimeError, cstr!("Expected a T_DATA"))
         })
 }
+
+pub fn to_ruby_bool(test: bool) -> ffi::VALUE {
+    if test {
+        unsafe { ffi::Qtrue }
+    } else {
+        unsafe { ffi::Qfalse }
+    }
+}

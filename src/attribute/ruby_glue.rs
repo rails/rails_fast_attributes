@@ -59,6 +59,12 @@ pub unsafe fn init() {
     );
     ffi::rb_define_method(
         attribute,
+        cstr!("=="),
+        equals as *const _,
+        1,
+    );
+    ffi::rb_define_method(
+        attribute,
         cstr!("initialize_dup"),
         initialize_dup as *const _,
         1,
@@ -110,6 +116,21 @@ extern "C" fn with_value_from_user(this: ffi::VALUE, value: ffi::VALUE) -> ffi::
 extern "C" fn with_value_from_database(this: ffi::VALUE, value: ffi::VALUE) -> ffi::VALUE {
     let this = unsafe { get_struct::<Attribute>(this) };
     this.with_value_from_database(value).into_ruby()
+}
+
+extern "C" fn equals(this: ffi::VALUE, other: ffi::VALUE) -> ffi::VALUE {
+    unsafe {
+        if !ffi::RB_TYPE_P(other, ffi::T_DATA) {
+            return ffi::Qfalse;
+        }
+        if ffi::rb_obj_class(other) != Attribute::class() {
+            return ffi::Qfalse;
+        }
+
+        let this = get_struct::<Attribute>(this);
+        let other = get_struct::<Attribute>(other);
+        to_ruby_bool(this == other)
+    }
 }
 
 extern "C" fn initialize_dup(this: ffi::VALUE, other: ffi::VALUE) -> ffi::VALUE {

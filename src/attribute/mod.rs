@@ -2,7 +2,7 @@ use ffi;
 
 mod ruby_glue;
 
-#[derive(Clone)]
+#[derive(Clone, Eq)]
 pub enum Attribute {
     Populated {
         name: ffi::VALUE,
@@ -21,7 +21,7 @@ impl Default for Attribute {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Source {
     FromUser,
     FromDatabase,
@@ -135,6 +135,47 @@ impl Attribute {
         match *self {
             Attribute::Populated { ty, .. } => ty,
             Attribute::Uninitialized { ty, .. } => ty,
+        }
+    }
+}
+
+impl PartialEq for Attribute {
+    fn eq(&self, other: &Self) -> bool {
+        fn ruby_equals(lhs: ffi::VALUE, rhs: ffi::VALUE) -> bool {
+            unsafe { ffi::RTEST(ffi::rb_funcall(lhs, id!("=="), 1, rhs)) }
+        }
+
+        use self::Attribute::*;
+
+        match (self, other) {
+            (
+                &Populated {
+                    ref source,
+                    name,
+                    raw_value,
+                    ty,
+                    ..
+                },
+                &Populated {
+                    source: ref source2,
+                    name: name2,
+                    raw_value: val2,
+                    ty: ty2,
+                    ..
+                },
+            ) => {
+                source == source2 && ruby_equals(name, name2)
+                    && ruby_equals(raw_value, val2)
+                    && ruby_equals(ty, ty2)
+            }
+            (
+                &Uninitialized { name, ty },
+                &Uninitialized {
+                    name: name2,
+                    ty: ty2,
+                },
+            ) => ruby_equals(name, name2) && ruby_equals(ty, ty2),
+            _ => false,
         }
     }
 }
