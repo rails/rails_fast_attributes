@@ -33,8 +33,30 @@ pub unsafe fn init() {
         0,
     );
     ffi::rb_define_method(attribute, cstr!("value"), value as *const _, 0);
-    ffi::rb_define_method(attribute, cstr!("value_for_database"), value_for_database as *const _, 0);
-    ffi::rb_define_method(attribute, cstr!("initialize_dup"), initialize_dup as *const _, 1);
+    ffi::rb_define_method(
+        attribute,
+        cstr!("value_for_database"),
+        value_for_database as *const _,
+        0,
+    );
+    ffi::rb_define_method(
+        attribute,
+        cstr!("with_value_from_user"),
+        with_value_from_user as *const _,
+        1,
+    );
+    ffi::rb_define_method(
+        attribute,
+        cstr!("with_value_from_database"),
+        with_value_from_database as *const _,
+        1,
+    );
+    ffi::rb_define_method(
+        attribute,
+        cstr!("initialize_dup"),
+        initialize_dup as *const _,
+        1,
+    );
 }
 
 extern "C" fn from_database(
@@ -68,6 +90,16 @@ extern "C" fn value(this: ffi::VALUE) -> ffi::VALUE {
 extern "C" fn value_for_database(this: ffi::VALUE) -> ffi::VALUE {
     let this = unsafe { get_struct::<Attribute>(this) };
     this.value_for_database()
+}
+
+extern "C" fn with_value_from_user(this: ffi::VALUE, value: ffi::VALUE) -> ffi::VALUE {
+    let this = unsafe { get_struct::<Attribute>(this) };
+    this.with_value_from_user(value).into_ruby()
+}
+
+extern "C" fn with_value_from_database(this: ffi::VALUE, value: ffi::VALUE) -> ffi::VALUE {
+    let this = unsafe { get_struct::<Attribute>(this) };
+    this.with_value_from_database(value).into_ruby()
 }
 
 extern "C" fn initialize_dup(this: ffi::VALUE, other: ffi::VALUE) -> ffi::VALUE {

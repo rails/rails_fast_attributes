@@ -111,7 +111,7 @@ module ActiveRecord
       end
     end
 
-    xspecify "with_value_from_user returns a new attribute with the value from the user" do
+    specify "with_value_from_user returns a new attribute with the value from the user" do
       old = Attribute.from_database(nil, "old", MyType.new)
       new = old.with_value_from_user("new")
 
@@ -119,7 +119,7 @@ module ActiveRecord
       expect(new.value).to eq("new from user")
     end
 
-    xspecify "with_value_from_database returns a new attribute with the value from the database" do
+    specify "with_value_from_database returns a new attribute with the value from the database" do
       old = Attribute.from_user(nil, "old", MyType.new)
       new = old.with_value_from_database("new")
 

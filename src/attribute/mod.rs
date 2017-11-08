@@ -4,6 +4,7 @@ mod ruby_glue;
 
 #[derive(Clone)]
 pub struct Attribute {
+    name: ffi::VALUE,
     raw_value: ffi::VALUE,
     ty: ffi::VALUE,
     source: Source,
@@ -24,8 +25,9 @@ pub enum Source {
 }
 
 impl Attribute {
-    fn from_database(_name: ffi::VALUE, raw_value: ffi::VALUE, ty: ffi::VALUE) -> Self {
+    fn from_database(name: ffi::VALUE, raw_value: ffi::VALUE, ty: ffi::VALUE) -> Self {
         Attribute {
+            name,
             raw_value,
             ty,
             source: Source::FromDatabase,
@@ -33,8 +35,9 @@ impl Attribute {
         }
     }
 
-    fn from_user(_name: ffi::VALUE, raw_value: ffi::VALUE, ty: ffi::VALUE) -> Self {
+    fn from_user(name: ffi::VALUE, raw_value: ffi::VALUE, ty: ffi::VALUE) -> Self {
         Attribute {
+            name,
             raw_value,
             ty,
             source: Source::FromUser,
@@ -62,9 +65,15 @@ impl Attribute {
 
     fn value_for_database(&mut self) -> ffi::VALUE {
         let value = self.value();
-        unsafe {
-            ffi::rb_funcall(self.ty, id!("serialize"), 1, value)
-        }
+        unsafe { ffi::rb_funcall(self.ty, id!("serialize"), 1, value) }
+    }
+
+    fn with_value_from_user(&self, value: ffi::VALUE) -> Self {
+        Self::from_user(self.name, value, self.ty)
+    }
+
+    fn with_value_from_database(&self, value: ffi::VALUE) -> Self {
+        Self::from_database(self.name, value, self.ty)
     }
 
     fn initialize_dup(&mut self, other: &Attribute) {
