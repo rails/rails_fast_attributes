@@ -18,6 +18,18 @@ pub trait IntoRuby: Sized {
             let _ = unsafe { Box::from_raw(this as *mut Self) };
         }
     }
+
+    fn into_ruby(self) -> ffi::VALUE {
+        let ptr = Box::into_raw(Box::new(self));
+        unsafe {
+            ffi::Data_Wrap_Struct(
+                Self::class(),
+                Some(Self::mark_ptr),
+                Some(Self::destroy_ptr),
+                ptr as *mut _,
+            )
+        }
+    }
 }
 
 pub trait Allocate: Default + IntoRuby {

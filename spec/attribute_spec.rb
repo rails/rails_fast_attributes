@@ -6,7 +6,7 @@ module ActiveRecord
       expect { Class.new(Attribute) }.to raise_error(/cannot be subclassed/)
     end
 
-    xspecify "from_database + read type casts from database" do
+    specify "from_database + read type casts from database" do
       allow(type).to receive(:deserialize).and_return("type cast from database")
       attribute = Attribute.from_database(nil, "a value", type)
 

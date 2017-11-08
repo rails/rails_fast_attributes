@@ -1,6 +1,8 @@
 #![deny(warnings)]
-extern crate libcruby_sys as ffi;
+#[macro_use]
+extern crate lazy_static;
 extern crate libc;
+extern crate libcruby_sys as ffi;
 
 macro_rules! cstr {
     ($s:expr) => {
@@ -8,8 +10,18 @@ macro_rules! cstr {
     };
 }
 
+macro_rules! id {
+    ($s:expr) => {{
+        lazy_static! {
+            static ref MID: ::ffi::ID = unsafe { ffi::rb_intern(cstr!($s)) };
+        }
+        *MID
+    }}
+}
+
 pub mod attribute;
 pub mod into_ruby;
+pub mod util;
 
 pub fn module() -> ffi::VALUE {
     unsafe { ::MODULE }.unwrap()
