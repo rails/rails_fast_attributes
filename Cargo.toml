@@ -7,3 +7,5 @@ authors = ["Sean Griffin <sean@seantheprogrammer.com>"]
 crate-type = ["cdylib"]
 
 [dependencies]
+libcruby-sys = { path = "/Users/sean/builds/helix/crates/libcruby-sys" }
+libc = "0.2.0"
