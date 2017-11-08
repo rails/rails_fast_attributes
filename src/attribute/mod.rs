@@ -108,6 +108,11 @@ impl Attribute {
         }
     }
 
+    fn forgetting_assignment(&mut self) -> Self {
+        let value_for_database = self.value_for_database();
+        self.with_value_from_database(value_for_database)
+    }
+
     fn with_value_from_user(&self, value: ffi::VALUE) -> Self {
         Self::from_user(self.name(), value, self.ty(), self.clone())
     }

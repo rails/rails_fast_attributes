@@ -219,7 +219,7 @@ module ActiveRecord
       expect(attribute).to be_changed
     end
 
-    xspecify "an attribute can forget its changes" do
+    specify "an attribute can forget its changes" do
       attribute = Attribute.from_database(:foo, "bar", Type::String.new)
       changed = attribute.with_value_from_user("foo")
       forgotten = changed.forgetting_assignment

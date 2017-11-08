@@ -59,6 +59,12 @@ pub unsafe fn init() {
     );
     ffi::rb_define_method(
         attribute,
+        cstr!("forgetting_assignment"),
+        forgetting_assignment as *const _,
+        0,
+    );
+    ffi::rb_define_method(
+        attribute,
         cstr!("with_value_from_user"),
         with_value_from_user as *const _,
         1,
@@ -141,6 +147,11 @@ extern "C" fn changed_eh(this: ffi::VALUE) -> ffi::VALUE {
 extern "C" fn changed_in_place_eh(this: ffi::VALUE) -> ffi::VALUE {
     let this = unsafe { get_struct::<Attribute>(this) };
     to_ruby_bool(this.is_changed_in_place())
+}
+
+extern "C" fn forgetting_assignment(this: ffi::VALUE) -> ffi::VALUE {
+    let this = unsafe { get_struct::<Attribute>(this) };
+    this.forgetting_assignment().into_ruby()
 }
 
 extern "C" fn with_value_from_user(this: ffi::VALUE, value: ffi::VALUE) -> ffi::VALUE {
