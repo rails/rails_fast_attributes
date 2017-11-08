@@ -23,12 +23,7 @@ pub unsafe fn init() {
         from_database as *const _,
         3,
     );
-    ffi::rb_define_singleton_method(
-        attribute,
-        cstr!("from_user"),
-        from_user as *const _,
-        3,
-    );
+    ffi::rb_define_singleton_method(attribute, cstr!("from_user"), from_user as *const _, 3);
 
     ffi::rb_define_method(attribute, cstr!("value"), value as *const _, 0);
 }

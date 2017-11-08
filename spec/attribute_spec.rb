@@ -24,8 +24,10 @@ module ActiveRecord
       expect(type_cast_value).to eq("type cast from user")
     end
 
-    xspecify "reading memoizes the value" do
-      allow(type).to receive(:deserialize).and_return("from the database")
+    specify "reading memoizes the value" do
+      def type.deserialize(*)
+        "from the database"
+      end
       attribute = Attribute.from_database(nil, "whatever", type)
 
       type_cast_value = attribute.value
