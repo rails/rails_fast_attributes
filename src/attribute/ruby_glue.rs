@@ -27,6 +27,12 @@ pub unsafe fn init() {
     ffi::rb_define_singleton_method(attribute, cstr!("from_user"), from_user as *const _, 4);
     ffi::rb_define_singleton_method(
         attribute,
+        cstr!("with_cast_value"),
+        from_cast_value as *const _,
+        3,
+    );
+    ffi::rb_define_singleton_method(
+        attribute,
         cstr!("uninitialized"),
         uninitialized as *const _,
         2,
@@ -68,6 +74,12 @@ pub unsafe fn init() {
         attribute,
         cstr!("with_value_from_database"),
         with_value_from_database as *const _,
+        1,
+    );
+    ffi::rb_define_method(
+        attribute,
+        cstr!("with_cast_value"),
+        with_cast_value as *const _,
         1,
     );
     ffi::rb_define_method(attribute, cstr!("with_type"), with_type as *const _, 1);
@@ -116,6 +128,15 @@ extern "C" fn from_user(
     Attribute::from_user(name, value, ty, original_attribute).into_ruby()
 }
 
+extern "C" fn from_cast_value(
+    _class: ffi::VALUE,
+    name: ffi::VALUE,
+    value: ffi::VALUE,
+    ty: ffi::VALUE,
+) -> ffi::VALUE {
+    Attribute::from_cast_value(name, value, ty).into_ruby()
+}
+
 extern "C" fn uninitialized(_class: ffi::VALUE, name: ffi::VALUE, ty: ffi::VALUE) -> ffi::VALUE {
     Attribute::uninitialized(name, ty).into_ruby()
 }
@@ -158,6 +179,11 @@ extern "C" fn with_value_from_user(this: ffi::VALUE, value: ffi::VALUE) -> ffi::
 extern "C" fn with_value_from_database(this: ffi::VALUE, value: ffi::VALUE) -> ffi::VALUE {
     let this = unsafe { get_struct::<Attribute>(this) };
     this.with_value_from_database(value).into_ruby()
+}
+
+extern "C" fn with_cast_value(this: ffi::VALUE, value: ffi::VALUE) -> ffi::VALUE {
+    let this = unsafe { get_struct::<Attribute>(this) };
+    this.with_cast_value(value).into_ruby()
 }
 
 extern "C" fn with_type(this: ffi::VALUE, ty: ffi::VALUE) -> ffi::VALUE {

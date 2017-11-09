@@ -25,6 +25,7 @@ impl Default for Attribute {
 pub enum Source {
     FromUser(Box<Attribute>),
     FromDatabase,
+    PreCast,
 }
 
 impl Attribute {
@@ -50,6 +51,16 @@ impl Attribute {
             ty,
             source: Source::FromUser(Box::new(original_attribute)),
             value: None,
+        }
+    }
+
+    fn from_cast_value(name: ffi::VALUE, value: ffi::VALUE, ty: ffi::VALUE) -> Self {
+        Attribute::Populated {
+            name,
+            raw_value: value,
+            ty,
+            source: Source::PreCast,
+            value: Some(value),
         }
     }
 
@@ -134,6 +145,10 @@ impl Attribute {
 
     fn with_value_from_database(&self, value: ffi::VALUE) -> Self {
         Self::from_database(self.name(), value, self.ty())
+    }
+
+    fn with_cast_value(&self, value: ffi::VALUE) -> Self {
+        Self::from_cast_value(self.name(), value, self.ty())
     }
 
     fn with_type(&mut self, ty: ffi::VALUE) -> Self {
@@ -248,17 +263,18 @@ impl Attribute {
             } => match *source {
                 FromUser(ref orig) => orig.original_value(),
                 FromDatabase => cast_value(source, ty, raw_value),
+                PreCast => raw_value,
             },
             Uninitialized { .. } => unsafe { ffi::Qnil }, // FIXME: This is a marker object in Ruby
         }
     }
 
-    fn original_value_for_database(&self) -> ffi::VALUE {
+    fn original_value_for_database(&mut self) -> ffi::VALUE {
         use self::Attribute::*;
         use self::Source::*;
         match *self {
             Populated {
-                source: FromUser(ref orig),
+                source: FromUser(ref mut orig),
                 ..
             } => orig.original_value_for_database(),
             Populated {
@@ -266,6 +282,9 @@ impl Attribute {
                 raw_value,
                 ..
             } => raw_value,
+            Populated {
+                source: PreCast, ..
+            } => self.value_for_database(),
             Uninitialized { .. } => unsafe { ffi::Qnil },
         }
     }
@@ -321,6 +340,7 @@ fn cast_value(source: &Source, ty: ffi::VALUE, raw_value: ffi::VALUE) -> ffi::VA
         match *source {
             FromDatabase => ffi::rb_funcall(ty, id!("deserialize"), 1, raw_value),
             FromUser(_) => ffi::rb_funcall(ty, id!("cast"), 1, raw_value),
+            PreCast => raw_value,
         }
     }
 }
