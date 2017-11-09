@@ -1,6 +1,6 @@
 use ffi;
 use into_ruby::*;
-use super::Attribute;
+use super::{Attribute, Source};
 use util::*;
 
 impl IntoRuby for Attribute {
@@ -8,7 +8,25 @@ impl IntoRuby for Attribute {
         ATTRIBUTE.unwrap()
     }
 
-    unsafe fn mark(&self) {}
+    unsafe fn mark(&self) {
+        match *self {
+            Attribute::Populated { name, raw_value, ty, ref source, value } => {
+                ffi::rb_gc_mark(name);
+                ffi::rb_gc_mark(raw_value);
+                ffi::rb_gc_mark(ty);
+                if let Source::FromUser(ref orig) = *source {
+                    orig.mark();
+                }
+                if let Some(value) = value {
+                    ffi::rb_gc_mark(value);
+                }
+            }
+            Attribute::Uninitialized { name, ty } => {
+                ffi::rb_gc_mark(name);
+                ffi::rb_gc_mark(ty);
+            }
+        }
+    }
 }
 
 static mut ATTRIBUTE: Option<ffi::VALUE> = None;
