@@ -45,6 +45,7 @@ pub unsafe fn init() {
         0,
     );
     ffi::rb_define_method(attribute, cstr!("value"), value as *const _, 0);
+    ffi::rb_define_method(attribute, cstr!("original_value"), original_value as *const _, 0);
     ffi::rb_define_method(
         attribute,
         cstr!("value_for_database"),
@@ -83,6 +84,7 @@ pub unsafe fn init() {
         1,
     );
     ffi::rb_define_method(attribute, cstr!("with_type"), with_type as *const _, 1);
+    ffi::rb_define_method(attribute, cstr!("initialized?"), initialized_eh as *const _, 0);
     ffi::rb_define_method(
         attribute,
         cstr!("has_been_read?"),
@@ -151,6 +153,11 @@ extern "C" fn value(this: ffi::VALUE) -> ffi::VALUE {
     this.value()
 }
 
+extern "C" fn original_value(this: ffi::VALUE) -> ffi::VALUE {
+    let this = unsafe { get_struct::<Attribute>(this) };
+    this.original_value()
+}
+
 extern "C" fn value_for_database(this: ffi::VALUE) -> ffi::VALUE {
     let this = unsafe { get_struct::<Attribute>(this) };
     this.value_for_database()
@@ -189,6 +196,11 @@ extern "C" fn with_cast_value(this: ffi::VALUE, value: ffi::VALUE) -> ffi::VALUE
 extern "C" fn with_type(this: ffi::VALUE, ty: ffi::VALUE) -> ffi::VALUE {
     let this = unsafe { get_struct::<Attribute>(this) };
     this.with_type(ty).into_ruby()
+}
+
+extern "C" fn initialized_eh(this: ffi::VALUE) -> ffi::VALUE {
+    let this = unsafe { get_struct::<Attribute>(this) };
+    to_ruby_bool(this.is_initialized())
 }
 
 extern "C" fn has_been_read(this: ffi::VALUE) -> ffi::VALUE {

@@ -175,6 +175,14 @@ impl Attribute {
         }
     }
 
+    fn is_initialized(&self) -> bool {
+        if let Attribute::Uninitialized { .. } = *self {
+            false
+        } else {
+            true
+        }
+    }
+
     fn has_been_read(&self) -> bool {
         if let Attribute::Populated { value: Some(_), .. } = *self {
             true
