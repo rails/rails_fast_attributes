@@ -35,6 +35,7 @@ pub unsafe fn init() {
     );
     ffi::rb_define_method(attribute_set, cstr!("to_hash"), to_hash as *const _, 0);
     ffi::rb_define_method(attribute_set, cstr!("to_h"), to_hash as *const _, 0);
+    ffi::rb_define_method(attribute_set, cstr!("keys"), keys as *const _, 0);
     ffi::rb_define_method(
         attribute_set,
         cstr!("write_from_database"),
@@ -66,6 +67,11 @@ extern "C" fn values_before_type_cast(this: ffi::VALUE) -> ffi::VALUE {
 extern "C" fn to_hash(this: ffi::VALUE) -> ffi::VALUE {
     let this = unsafe { get_struct::<AttributeSet>(this) };
     this.to_hash()
+}
+
+extern "C" fn keys(this: ffi::VALUE) -> ffi::VALUE {
+    let this = unsafe { get_struct::<AttributeSet>(this) };
+    this.keys()
 }
 
 extern "C" fn write_from_database(

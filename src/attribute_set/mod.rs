@@ -40,6 +40,21 @@ impl AttributeSet {
         result
     }
 
+    fn keys(&self) -> ffi::VALUE {
+        let capa = self.attributes.len() as isize;
+        let result = unsafe { ffi::rb_ary_new_capa(capa) };
+        let attributes = self.attributes
+            .iter()
+            .filter(|&(_, ref attr)| attr.is_initialized());
+
+        for (&key, _) in attributes {
+            let name = unsafe { ffi::rb_id2sym(key) };
+            unsafe { ffi::rb_ary_push(result, name) };
+        }
+
+        result
+    }
+
     fn write_from_database(&mut self, key: ffi::ID, value: ffi::VALUE) {
         let new_attr = self.get(key).map(|a| a.with_value_from_database(value));
         if let Some(attr) = new_attr {

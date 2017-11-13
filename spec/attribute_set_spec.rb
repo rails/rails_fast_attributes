@@ -110,7 +110,7 @@ module ActiveRecord
       expect(attributes.to_hash).to eq({ foo: 1 })
     end
 
-    xspecify "uninitialized attributes are not included in keys" do
+    specify "uninitialized attributes are not included in keys" do
       attributes = attributes_with_uninitialized_key
       expect(attributes.keys).to eq([:foo])
     end
