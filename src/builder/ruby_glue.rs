@@ -47,7 +47,7 @@ extern "C" fn initialize(
         let always_initialized = if { ffi::RB_NIL_P(always_initialized) } {
             None
         } else {
-            Some(ffi::rb_sym2id(always_initialized))
+            Some(string_or_symbol_to_id(always_initialized))
         };
 
         let this = get_struct::<Builder>(this);

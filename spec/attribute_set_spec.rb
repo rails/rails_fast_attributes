@@ -10,6 +10,16 @@ module ActiveRecord
       expect(attributes[:bar].name).to eq(:bar)
     end
 
+    specify "building with string keys" do
+      builder = AttributeSet::Builder.new("foo" => Type::Integer.new, bar: Type::Float.new)
+      attributes = builder.build_from_database(foo: "1.1", "bar" => "2.2")
+
+      expect(attributes["foo"].value).to eq(1)
+      expect(attributes[:bar].value).to eq(2.2)
+      expect(attributes[:foo].name).to eq("foo")
+      expect(attributes["bar"].name).to eq(:bar)
+    end
+
     specify "building with custom types" do
       builder = AttributeSet::Builder.new(foo: Type::Float.new)
       attributes = builder.build_from_database({ foo: "3.3", bar: "4.4" }, { bar: Type::Integer.new })

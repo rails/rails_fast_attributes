@@ -3,6 +3,7 @@ use ordermap::OrderMap;
 use attribute::Attribute;
 use attribute_set::AttributeSet;
 use {ffi, libc};
+use util::string_or_symbol_to_id;
 
 mod ruby_glue;
 
@@ -70,7 +71,7 @@ extern "C" fn push_uninitialized_value(
     let hash_ptr = hash_ptr as *mut OrderMap<ffi::ID, Attribute>;
     let hash = unsafe { hash_ptr.as_mut().unwrap() };
 
-    let id = unsafe { ffi::rb_sym2id(key) };
+    let id = string_or_symbol_to_id(key);
     let attribute = Attribute::uninitialized(key, value);
 
     hash.insert(id, attribute);
@@ -86,7 +87,7 @@ extern "C" fn push_value(
     let data_ptr = data_ptr as *mut OrderMap<ffi::ID, Attribute>;
     let hash = unsafe { data_ptr.as_mut().unwrap() };
 
-    let id = unsafe { ffi::rb_sym2id(key) };
+    let id = string_or_symbol_to_id(key);
 
     let new_attr = hash[&id].with_value_from_database(value);
     hash.insert(id, new_attr);

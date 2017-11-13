@@ -15,3 +15,14 @@ pub fn to_ruby_bool(test: bool) -> ffi::VALUE {
         unsafe { ffi::Qfalse }
     }
 }
+
+
+pub fn string_or_symbol_to_id(sym_or_string: ffi::VALUE) -> ffi::ID {
+    unsafe {
+        if ffi::RB_TYPE_P(sym_or_string, ffi::T_STRING) {
+            ffi::rb_intern_str(sym_or_string)
+        } else {
+            ffi::rb_sym2id(sym_or_string)
+        }
+    }
+}

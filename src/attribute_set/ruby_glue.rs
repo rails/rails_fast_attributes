@@ -66,7 +66,7 @@ pub unsafe fn init() {
 
 extern "C" fn get(this: ffi::VALUE, key: ffi::VALUE) -> ffi::VALUE {
     let this = unsafe { get_struct::<AttributeSet>(this) };
-    let key = unsafe { ffi::rb_sym2id(key) };
+    let key = string_or_symbol_to_id(key);
     this.get(key)
         .map(IntoRuby::as_ruby)
         .unwrap_or(unsafe { ffi::Qnil })
@@ -84,7 +84,7 @@ extern "C" fn to_hash(this: ffi::VALUE) -> ffi::VALUE {
 
 extern "C" fn key_eh(this: ffi::VALUE, key: ffi::VALUE) -> ffi::VALUE {
     let this = unsafe { get_struct::<AttributeSet>(this) };
-    let key = unsafe { ffi::rb_sym2id(key) };
+    let key = string_or_symbol_to_id(key);
     to_ruby_bool(this.has_key(key))
 }
 
@@ -95,7 +95,7 @@ extern "C" fn keys(this: ffi::VALUE) -> ffi::VALUE {
 
 extern "C" fn fetch_value(this: ffi::VALUE, key: ffi::VALUE) -> ffi::VALUE {
     let this = unsafe { get_struct::<AttributeSet>(this) };
-    let key = unsafe { ffi::rb_sym2id(key) };
+    let key = string_or_symbol_to_id(key);
     this.fetch_value(key).unwrap_or(unsafe { ffi::Qnil })
 }
 
@@ -105,7 +105,7 @@ extern "C" fn write_from_database(
     value: ffi::VALUE,
 ) -> ffi::VALUE {
     let this = unsafe { get_struct::<AttributeSet>(this) };
-    let key = unsafe { ffi::rb_sym2id(key) };
+    let key = string_or_symbol_to_id(key);
     this.write_from_database(key, value);
     unsafe { ffi::Qnil }
 }
@@ -116,7 +116,7 @@ extern "C" fn write_from_user(
     value: ffi::VALUE,
 ) -> ffi::VALUE {
     let this = unsafe { get_struct::<AttributeSet>(this) };
-    let key = unsafe { ffi::rb_sym2id(key) };
+    let key = string_or_symbol_to_id(key);
     this.write_from_user(key, value);
     unsafe { ffi::Qnil }
 }
