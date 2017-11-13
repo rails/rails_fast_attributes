@@ -61,6 +61,10 @@ impl AttributeSet {
         result
     }
 
+    fn fetch_value(&mut self, key: ffi::ID) -> Option<ffi::VALUE> {
+        self.attributes.get_mut(&key).map(Attribute::value)
+    }
+
     fn write_from_database(&mut self, key: ffi::ID, value: ffi::VALUE) {
         let new_attr = self.get(key).map(|a| a.with_value_from_database(value));
         if let Some(attr) = new_attr {

@@ -126,7 +126,7 @@ module ActiveRecord
       expect(attributes.key?(:wibble)).not_to be
     end
 
-    xspecify "fetch_value returns the value for the given initialized attribute" do
+    specify "fetch_value returns the value for the given initialized attribute" do
       builder = AttributeSet::Builder.new(foo: Type::Integer.new, bar: Type::Float.new)
       attributes = builder.build_from_database(foo: "1.1", bar: "2.2")
 
@@ -134,26 +134,26 @@ module ActiveRecord
       expect(attributes.fetch_value(:bar)).to eq(2.2)
     end
 
-    xspecify "fetch_value returns nil for unknown attributes" do
+    specify "fetch_value returns nil for unknown attributes" do
       attributes = attributes_with_uninitialized_key
       expect(attributes.fetch_value(:wibble) { "hello" }).to be_nil
     end
 
-    xspecify "fetch_value returns nil for unknown attributes when types has a default" do
+    specify "fetch_value returns nil for unknown attributes when types has a default" do
       types = Hash.new(Type::Value.new)
       builder = AttributeSet::Builder.new(types)
-      attributes = builder.build_from_database
+      attributes = builder.build_from_database({})
 
       expect(attributes.fetch_value(:wibble) { "hello" }).to be_nil
     end
 
-    xspecify "fetch_value uses the given block for uninitialized attributes" do
+    specify "fetch_value uses the given block for uninitialized attributes" do
       attributes = attributes_with_uninitialized_key
       value = attributes.fetch_value(:bar) { |n| n.to_s + "!" }
       expect(value).to eq("bar!")
     end
 
-    xspecify "fetch_value returns nil for uninitialized attributes if no block is given" do
+    specify "fetch_value returns nil for uninitialized attributes if no block is given" do
       attributes = attributes_with_uninitialized_key
       expect(attributes.fetch_value(:bar)).to be_nil
     end

@@ -39,6 +39,12 @@ pub unsafe fn init() {
     ffi::rb_define_method(attribute_set, cstr!("keys"), keys as *const _, 0);
     ffi::rb_define_method(
         attribute_set,
+        cstr!("fetch_value"),
+        fetch_value as *const _,
+        1,
+    );
+    ffi::rb_define_method(
+        attribute_set,
         cstr!("write_from_database"),
         write_from_database as *const _,
         2,
@@ -79,6 +85,12 @@ extern "C" fn key_eh(this: ffi::VALUE, key: ffi::VALUE) -> ffi::VALUE {
 extern "C" fn keys(this: ffi::VALUE) -> ffi::VALUE {
     let this = unsafe { get_struct::<AttributeSet>(this) };
     this.keys()
+}
+
+extern "C" fn fetch_value(this: ffi::VALUE, key: ffi::VALUE) -> ffi::VALUE {
+    let this = unsafe { get_struct::<AttributeSet>(this) };
+    let key = unsafe { ffi::rb_sym2id(key) };
+    this.fetch_value(key).unwrap_or(unsafe { ffi::Qnil })
 }
 
 extern "C" fn write_from_database(
