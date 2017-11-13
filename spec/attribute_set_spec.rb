@@ -227,7 +227,7 @@ module ActiveRecord
       expect(attributes.to_hash).to eq({ foo: "1" })
     end
 
-    xspecify "#accessed_attributes returns only attributes which have been read" do
+    specify "#accessed_attributes returns only attributes which have been read" do
       builder = AttributeSet::Builder.new(foo: Type::Value.new, bar: Type::Value.new)
       attributes = builder.build_from_database(foo: "1", bar: "2")
 

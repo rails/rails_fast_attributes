@@ -64,6 +64,7 @@ pub unsafe fn init() {
         initialize_copy as *const _,
         1,
     );
+    ffi::rb_define_method(attribute_set, cstr!("accessed"), accessed as *const _, 0);
     ffi::rb_define_method(attribute_set, cstr!("map"), map as *const _, 0);
 }
 
@@ -138,6 +139,11 @@ extern "C" fn initialize_copy(this_ptr: ffi::VALUE, other: ffi::VALUE) -> ffi::V
     let other = unsafe { get_struct::<AttributeSet>(other) };
     this.clone_from(other);
     this_ptr
+}
+
+extern "C" fn accessed(this: ffi::VALUE) -> ffi::VALUE {
+    let this = unsafe { get_struct::<AttributeSet>(this) };
+    this.accessed()
 }
 
 extern "C" fn map(this: ffi::VALUE) -> ffi::VALUE {

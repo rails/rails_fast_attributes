@@ -29,7 +29,7 @@ pub enum Source {
 }
 
 impl Attribute {
-    fn from_database(name: ffi::VALUE, raw_value: ffi::VALUE, ty: ffi::VALUE) -> Self {
+    pub fn from_database(name: ffi::VALUE, raw_value: ffi::VALUE, ty: ffi::VALUE) -> Self {
         Attribute::Populated {
             name,
             raw_value,
@@ -183,7 +183,7 @@ impl Attribute {
         }
     }
 
-    fn has_been_read(&self) -> bool {
+    pub fn has_been_read(&self) -> bool {
         if let Attribute::Populated { value: Some(_), .. } = *self {
             true
         } else {
@@ -211,7 +211,7 @@ impl Attribute {
         }
     }
 
-    fn name(&self) -> ffi::VALUE {
+    pub fn name(&self) -> ffi::VALUE {
         match *self {
             Attribute::Populated { name, .. } => name,
             Attribute::Uninitialized { name, .. } => name,

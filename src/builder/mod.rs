@@ -89,7 +89,15 @@ extern "C" fn push_value(
 
     let id = string_or_symbol_to_id(key);
 
-    let new_attr = hash[&id].with_value_from_database(value);
+    let new_attr = if let Some(attr) = hash.get(&id) {
+        attr.with_value_from_database(value)
+    } else {
+        let active_record = unsafe { ffi::rb_const_get(ffi::rb_cObject, id!("ActiveRecord")) };
+        let type_module = unsafe { ffi::rb_const_get(active_record, id!("Type")) };
+        let ty = unsafe { ffi::rb_funcall(type_module, id!("default_value"), 0) };
+        Attribute::from_database(key, value, ty)
+    };
+
     hash.insert(id, new_attr);
 
     ffi::st_retval::ST_CONTINUE

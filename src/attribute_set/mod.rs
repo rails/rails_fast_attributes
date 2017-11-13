@@ -2,6 +2,7 @@ use ordermap::OrderMap;
 
 use attribute::Attribute;
 use ffi;
+use util::to_ruby_array;
 
 mod ruby_glue;
 
@@ -51,18 +52,12 @@ impl AttributeSet {
     }
 
     fn keys(&self) -> ffi::VALUE {
-        let capa = self.attributes.len() as isize;
-        let result = unsafe { ffi::rb_ary_new_capa(capa) };
-        let attributes = self.attributes
-            .iter()
-            .filter(|&(_, ref attr)| attr.is_initialized());
+        let keys = self.attributes
+            .values()
+            .filter(|a| a.is_initialized())
+            .map(Attribute::name);
 
-        for (&key, _) in attributes {
-            let name = unsafe { ffi::rb_id2sym(key) };
-            unsafe { ffi::rb_ary_push(result, name) };
-        }
-
-        result
+        to_ruby_array(self.attributes.len(), keys)
     }
 
     fn fetch_value(&mut self, key: ffi::ID) -> Option<ffi::VALUE> {
@@ -89,6 +84,14 @@ impl AttributeSet {
             .map(|(&k, v)| (k, v.deep_dup()))
             .collect();
         Self::new(attributes)
+    }
+
+    fn accessed(&self) -> ffi::VALUE {
+        let keys = self.attributes
+            .values()
+            .filter(|a| a.has_been_read())
+            .map(Attribute::name);
+        to_ruby_array(self.attributes.len(), keys)
     }
 
     fn map<'a, F: Fn(&'a Attribute) -> Attribute>(&'a self, f: F) -> Self {

@@ -16,6 +16,16 @@ pub fn to_ruby_bool(test: bool) -> ffi::VALUE {
     }
 }
 
+pub fn to_ruby_array<T>(capactiy: usize, iter: T) -> ffi::VALUE
+where
+    T: IntoIterator<Item = ffi::VALUE>,
+{
+    let result = unsafe { ffi::rb_ary_new_capa(capactiy as isize) };
+    for item in iter {
+        unsafe { ffi::rb_ary_push(result, item) };
+    }
+    result
+}
 
 pub fn string_or_symbol_to_id(sym_or_string: ffi::VALUE) -> ffi::ID {
     unsafe {
