@@ -24,54 +24,63 @@ impl Builder {
             Some(push_uninitialized_value),
             &mut self.uninitialized_attributes as *mut _ as *mut _,
         );
-
-        extern "C" fn push_uninitialized_value(
-            key: ffi::VALUE,
-            value: ffi::VALUE,
-            hash_ptr: *mut libc::c_void,
-        ) -> ffi::st_retval {
-            let hash_ptr = hash_ptr as *mut HashMap<ffi::ID, Attribute>;
-            let hash = unsafe { hash_ptr.as_mut().unwrap() };
-
-            let id = unsafe { ffi::rb_sym2id(key) };
-            let attribute = Attribute::uninitialized(key, value);
-
-            hash.insert(id, attribute);
-
-            ffi::st_retval::ST_CONTINUE
-        }
     }
 
-    fn build_from_database(&self, values: ffi::VALUE) -> AttributeSet {
+    fn build_from_database(&self, values: ffi::VALUE, additional_types: Option<ffi::VALUE>) -> AttributeSet {
         let mut attributes = self.uninitialized_attributes.clone();
+
         unsafe {
+            if let Some(types) = additional_types {
+                ffi::rb_hash_foreach(
+                    types,
+                    Some(push_uninitialized_value),
+                    &mut attributes as *mut _ as *mut _,
+                );
+            }
+
             ffi::rb_hash_foreach(
                 values,
-                Some(push_attributes),
+                Some(push_value),
                 &mut attributes as *mut _ as *mut _,
             );
         }
 
-        return AttributeSet::new(attributes);
-
-        extern "C" fn push_attributes(
-            key: ffi::VALUE,
-            value: ffi::VALUE,
-            data_ptr: *mut libc::c_void,
-        ) -> ffi::st_retval {
-            let data_ptr = data_ptr as *mut HashMap<ffi::ID, Attribute>;
-            let hash = unsafe { data_ptr.as_mut().unwrap() };
-
-            let id = unsafe { ffi::rb_sym2id(key) };
-
-            let new_attr = hash[&id].with_value_from_database(value);
-            hash.insert(id, new_attr);
-
-            ffi::st_retval::ST_CONTINUE
-        }
+        AttributeSet::new(attributes)
     }
 }
 
 pub unsafe fn init() {
     self::ruby_glue::init();
+}
+
+extern "C" fn push_uninitialized_value(
+    key: ffi::VALUE,
+    value: ffi::VALUE,
+    hash_ptr: *mut libc::c_void,
+) -> ffi::st_retval {
+    let hash_ptr = hash_ptr as *mut HashMap<ffi::ID, Attribute>;
+    let hash = unsafe { hash_ptr.as_mut().unwrap() };
+
+    let id = unsafe { ffi::rb_sym2id(key) };
+    let attribute = Attribute::uninitialized(key, value);
+
+    hash.insert(id, attribute);
+
+    ffi::st_retval::ST_CONTINUE
+}
+
+extern "C" fn push_value(
+    key: ffi::VALUE,
+    value: ffi::VALUE,
+    data_ptr: *mut libc::c_void,
+) -> ffi::st_retval {
+    let data_ptr = data_ptr as *mut HashMap<ffi::ID, Attribute>;
+    let hash = unsafe { data_ptr.as_mut().unwrap() };
+
+    let id = unsafe { ffi::rb_sym2id(key) };
+
+    let new_attr = hash[&id].with_value_from_database(value);
+    hash.insert(id, new_attr);
+
+    ffi::st_retval::ST_CONTINUE
 }

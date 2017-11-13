@@ -10,7 +10,7 @@ module ActiveRecord
       expect(attributes[:bar].name).to eq(:bar)
     end
 
-    xspecify "building with custom types" do
+    specify "building with custom types" do
       builder = AttributeSet::Builder.new(foo: Type::Float.new)
       attributes = builder.build_from_database({ foo: "3.3", bar: "4.4" }, { bar: Type::Integer.new })
 

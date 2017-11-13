@@ -1,4 +1,4 @@
-use ffi;
+use {ffi, libc};
 use into_ruby::{Allocate, IntoRuby};
 use super::Builder;
 use util::*;
@@ -30,7 +30,7 @@ pub unsafe fn init() {
         builder,
         cstr!("build_from_database"),
         build_from_database as *const _,
-        1,
+        -1,
     );
 }
 
@@ -42,7 +42,19 @@ extern "C" fn initialize(this: ffi::VALUE, types: ffi::VALUE) -> ffi::VALUE {
     this
 }
 
-extern "C" fn build_from_database(this: ffi::VALUE, values: ffi::VALUE) -> ffi::VALUE {
-    let this = unsafe { get_struct::<Builder>(this) };
-    this.build_from_database(values).into_ruby()
+extern "C" fn build_from_database(argc: libc::c_int, argv: *const ffi::VALUE, this: ffi::VALUE) -> ffi::VALUE {
+    unsafe {
+        let this = get_struct::<Builder>(this);
+        let mut values = ffi::Qnil;
+        let mut additional_types = ffi::Qnil;
+        ffi::rb_scan_args(argc, argv, cstr!("11"), &mut values, &mut additional_types);
+
+        let additional_types = if { ffi::RB_NIL_P(additional_types) } {
+            None
+        } else {
+            Some(additional_types)
+        };
+
+        this.build_from_database(values, additional_types).into_ruby()
+    }
 }
