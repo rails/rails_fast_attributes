@@ -30,7 +30,10 @@ impl AttributeSet {
 
     fn to_hash(&mut self) -> ffi::VALUE {
         let result = unsafe { ffi::rb_hash_new() };
-        for (&key, value) in &mut self.attributes {
+        let attributes = self.attributes
+            .iter_mut()
+            .filter(|&(_, ref attr)| attr.is_initialized());
+        for (&key, value) in attributes {
             let key = unsafe { ffi::rb_id2sym(key) };
             unsafe { ffi::rb_hash_aset(result, key, value.value()) };
         }

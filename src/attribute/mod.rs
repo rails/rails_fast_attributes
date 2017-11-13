@@ -175,7 +175,7 @@ impl Attribute {
         }
     }
 
-    fn is_initialized(&self) -> bool {
+    pub fn is_initialized(&self) -> bool {
         if let Attribute::Uninitialized { .. } = *self {
             false
         } else {

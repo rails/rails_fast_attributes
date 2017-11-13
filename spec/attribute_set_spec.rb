@@ -99,13 +99,13 @@ module ActiveRecord
       expect(attributes.values_before_type_cast).to eq({ foo: "1.1", bar: "2.2" })
     end
 
-    xspecify "known columns are built with uninitialized attributes" do
+    specify "known columns are built with uninitialized attributes" do
       attributes = attributes_with_uninitialized_key
       expect(attributes[:foo]).to be_initialized
       expect(attributes[:bar]).not_to be_initialized
     end
 
-    xspecify "uninitialized attributes are not included in the attributes hash" do
+    specify "uninitialized attributes are not included in the attributes hash" do
       attributes = attributes_with_uninitialized_key
       expect(attributes.to_hash).to eq({ foo: 1 })
     end
