@@ -28,6 +28,7 @@ pub unsafe fn init() {
     ffi::rb_define_alloc_func(attribute_set, Some(AttributeSet::allocate));
 
     ffi::rb_define_method(attribute_set, cstr!("[]"), get as *const _, 1);
+    ffi::rb_define_method(attribute_set, cstr!("[]="), set as *const _, 2);
     ffi::rb_define_method(
         attribute_set,
         cstr!("values_before_type_cast"),
@@ -72,6 +73,14 @@ extern "C" fn get(this: ffi::VALUE, key: ffi::VALUE) -> ffi::VALUE {
     this.get(key)
         .map(IntoRuby::as_ruby)
         .unwrap_or(unsafe { ffi::Qnil })
+}
+
+extern "C" fn set(this: ffi::VALUE, key: ffi::VALUE, value: ffi::VALUE) -> ffi::VALUE {
+    let this = unsafe { get_struct::<AttributeSet>(this) };
+    let attr = unsafe { get_struct::<Attribute>(value) };
+    let key = string_or_symbol_to_id(key);
+    this.set(key, attr.clone());
+    unsafe { ffi::Qnil }
 }
 
 extern "C" fn values_before_type_cast(this: ffi::VALUE) -> ffi::VALUE {
