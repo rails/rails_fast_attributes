@@ -6,7 +6,7 @@ use util::to_ruby_array;
 
 mod ruby_glue;
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, PartialEq, Eq)]
 pub struct AttributeSet {
     attributes: OrderMap<ffi::ID, Attribute>,
 }

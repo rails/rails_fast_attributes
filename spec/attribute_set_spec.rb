@@ -249,7 +249,7 @@ module ActiveRecord
       expect(new_attributes.fetch_value(:bar)).to eq(3)
     end
 
-    xspecify "comparison for equality is correctly implemented" do
+    specify "comparison for equality is correctly implemented" do
       builder = AttributeSet::Builder.new(foo: Type::Integer.new, bar: Type::Integer.new)
       attributes = builder.build_from_database(foo: "1", bar: "2")
       attributes2 = builder.build_from_database(foo: "1", bar: "2")

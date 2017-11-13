@@ -66,6 +66,7 @@ pub unsafe fn init() {
     );
     ffi::rb_define_method(attribute_set, cstr!("accessed"), accessed as *const _, 0);
     ffi::rb_define_method(attribute_set, cstr!("map"), map as *const _, 0);
+    ffi::rb_define_method(attribute_set, cstr!("=="), equals as *const _, 1);
 }
 
 extern "C" fn get(this: ffi::VALUE, key: ffi::VALUE) -> ffi::VALUE {
@@ -152,4 +153,19 @@ extern "C" fn map(this: ffi::VALUE) -> ffi::VALUE {
         let new_attr = ffi::rb_yield(attr.as_ruby());
         get_struct::<Attribute>(new_attr).clone()
     }).into_ruby()
+}
+
+extern "C" fn equals(this: ffi::VALUE, other: ffi::VALUE) -> ffi::VALUE {
+    unsafe {
+        if !ffi::RB_TYPE_P(other, ffi::T_DATA) {
+            return ffi::Qfalse;
+        }
+        if ffi::rb_obj_class(other) != AttributeSet::class() {
+            return ffi::Qfalse;
+        }
+
+        let this = get_struct::<AttributeSet>(this);
+        let other = get_struct::<AttributeSet>(other);
+        to_ruby_bool(this == other)
+    }
 }
