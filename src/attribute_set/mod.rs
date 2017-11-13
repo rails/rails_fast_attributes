@@ -26,9 +26,10 @@ impl AttributeSet {
 
     fn values_before_type_cast(&self) -> ffi::VALUE {
         let result = unsafe { ffi::rb_hash_new() };
-        for (&key, value) in &self.attributes {
-            let key = unsafe { ffi::rb_id2sym(key) };
-            unsafe { ffi::rb_hash_aset(result, key, value.value_before_type_cast()) };
+        for attr in self.attributes.values() {
+            let name = attr.name();
+            let value = attr.value_before_type_cast();
+            unsafe { ffi::rb_hash_aset(result, name, value) };
         }
         result
     }
@@ -36,11 +37,10 @@ impl AttributeSet {
     fn to_hash(&mut self) -> ffi::VALUE {
         let result = unsafe { ffi::rb_hash_new() };
         let attributes = self.attributes
-            .iter_mut()
-            .filter(|&(_, ref attr)| attr.is_initialized());
-        for (&key, value) in attributes {
-            let key = unsafe { ffi::rb_id2sym(key) };
-            unsafe { ffi::rb_hash_aset(result, key, value.value()) };
+            .values_mut()
+            .filter(|attr| attr.is_initialized());
+        for attr in attributes {
+            unsafe { ffi::rb_hash_aset(result, attr.name(), attr.value()) };
         }
         result
     }
