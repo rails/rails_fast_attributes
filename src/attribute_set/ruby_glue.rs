@@ -67,6 +67,8 @@ pub unsafe fn init() {
     ffi::rb_define_method(attribute_set, cstr!("accessed"), accessed as *const _, 0);
     ffi::rb_define_method(attribute_set, cstr!("map"), map as *const _, 0);
     ffi::rb_define_method(attribute_set, cstr!("=="), equals as *const _, 1);
+    ffi::rb_define_method(attribute_set, cstr!("_dump_data"), dump_data as *const _, 0);
+    ffi::rb_define_method(attribute_set, cstr!("_load_data"), load_data as *const _, 1);
 }
 
 extern "C" fn get(this: ffi::VALUE, key: ffi::VALUE) -> ffi::VALUE {
@@ -167,5 +169,31 @@ extern "C" fn equals(this: ffi::VALUE, other: ffi::VALUE) -> ffi::VALUE {
         let this = get_struct::<AttributeSet>(this);
         let other = get_struct::<AttributeSet>(other);
         to_ruby_bool(this == other)
+    }
+}
+
+extern "C" fn dump_data(this: ffi::VALUE) -> ffi::VALUE {
+    let this = unsafe { get_struct::<AttributeSet>(this) };
+    to_ruby_array(
+        this.attributes.len(),
+        this.attributes.values().map(Attribute::as_ruby),
+    )
+}
+
+extern "C" fn load_data(this: ffi::VALUE, data: ffi::VALUE) -> ffi::VALUE {
+    use std::slice;
+    unsafe {
+        let this = get_struct::<AttributeSet>(this);
+        let attrs =
+            slice::from_raw_parts(ffi::RARRAY_CONST_PTR(data), ffi::RARRAY_LEN(data) as usize);
+        this.attributes = attrs
+            .iter()
+            .map(|value| {
+                let attr = get_struct::<Attribute>(*value);
+                let key = string_or_symbol_to_id(attr.name());
+                (key, attr.clone())
+            })
+            .collect();
+        ffi::Qnil
     }
 }

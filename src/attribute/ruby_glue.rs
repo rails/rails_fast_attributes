@@ -133,6 +133,8 @@ pub unsafe fn init() {
         initialize_dup as *const _,
         1,
     );
+    ffi::rb_define_method(attribute, cstr!("_dump_data"), dump_data as *const _, 0);
+    ffi::rb_define_method(attribute, cstr!("_load_data"), load_data as *const _, 1);
 }
 
 fn from_value(value: ffi::VALUE) -> Attribute {
@@ -268,4 +270,77 @@ extern "C" fn initialize_dup(this: ffi::VALUE, other: ffi::VALUE) -> ffi::VALUE 
     let other = unsafe { get_struct::<Attribute>(other) };
     this.initialize_dup(other);
     unsafe { ffi::Qnil }
+}
+
+extern "C" fn dump_data(this: ffi::VALUE) -> ffi::VALUE {
+    use self::Attribute::*;
+    let this = unsafe { get_struct::<Attribute>(this) };
+
+    return match *this {
+        Populated {
+            name,
+            raw_value,
+            ty,
+            ref source,
+            value: _value,
+        } => to_ruby_array(4, vec![name, ty, raw_value, dump_source(source)]),
+        Uninitialized { name, ty } => to_ruby_array(2, vec![name, ty]),
+    };
+
+    fn dump_source(source: &'static Source) -> ffi::VALUE {
+        use self::Source::*;
+        match *source {
+            FromUser(ref orig) => orig.as_ruby(),
+            FromDatabase => unsafe { ffi::I322NUM(2) },
+            PreCast => unsafe { ffi::I322NUM(3) },
+        }
+    }
+}
+
+extern "C" fn load_data(this: ffi::VALUE, data: ffi::VALUE) -> ffi::VALUE {
+    use self::Attribute::*;
+    use self::Source::*;
+
+    fn error() -> ! {
+        unsafe { ffi::rb_raise(ffi::rb_eRuntimeError, cstr!("Unrecognized attribute")) };
+    }
+
+    unsafe {
+        let this = get_struct::<Attribute>(this);
+        let name = ffi::rb_ary_entry(data, 0);
+        let ty = ffi::rb_ary_entry(data, 1);
+        let raw_value = ffi::rb_ary_entry(data, 2);
+        let source = ffi::rb_ary_entry(data, 3);
+
+        if ffi::RB_NIL_P(source) {
+            *this = Uninitialized { name, ty };
+        } else if ffi::RB_TYPE_P(source, ffi::T_DATA) {
+            let attr = get_struct::<Attribute>(source).clone();
+            let source = FromUser(Box::new(attr));
+            *this = Populated {
+                name,
+                ty,
+                raw_value,
+                source,
+                value: None,
+            };
+        } else if ffi::RB_TYPE_P(source, ffi::T_FIXNUM) {
+            let source = match ffi::NUM2I32(source) {
+                2 => FromDatabase,
+                3 => PreCast,
+                _ => error(),
+            };
+            *this = Populated {
+                name,
+                ty,
+                raw_value,
+                source,
+                value: None,
+            };
+        } else {
+            error();
+        }
+
+        ffi::Qnil
+    }
 }

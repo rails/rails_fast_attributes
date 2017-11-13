@@ -258,5 +258,14 @@ module ActiveRecord
       expect(attributes2).to eq(attributes)
       expect(attributes3).not_to eq(attributes2)
     end
+
+    it "can be marshalled" do
+      builder = AttributeSet::Builder.new(foo: Type::Integer.new, bar: Type::Integer.new)
+      attributes = builder.build_from_database(foo: "1", bar: "2")
+
+      marshalled = Marshal.load(Marshal.dump(attributes))
+
+      expect(attributes).to eq(marshalled)
+    end
   end
 end
