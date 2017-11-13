@@ -25,7 +25,7 @@ pub unsafe fn init() {
 
     ffi::rb_define_alloc_func(builder, Some(Builder::allocate));
 
-    ffi::rb_define_method(builder, cstr!("initialize"), initialize as *const _, 1);
+    ffi::rb_define_method(builder, cstr!("initialize"), initialize as *const _, -1);
     ffi::rb_define_method(
         builder,
         cstr!("build_from_database"),
@@ -34,10 +34,24 @@ pub unsafe fn init() {
     );
 }
 
-extern "C" fn initialize(this: ffi::VALUE, types: ffi::VALUE) -> ffi::VALUE {
+extern "C" fn initialize(
+    argc: libc::c_int,
+    argv: *const ffi::VALUE,
+    this: ffi::VALUE,
+) -> ffi::VALUE {
     unsafe {
+        let mut types = ffi::Qnil;
+        let mut always_initialized = ffi::Qnil;
+        ffi::rb_scan_args(argc, argv, cstr!("11"), &mut types, &mut always_initialized);
+
+        let always_initialized = if { ffi::RB_NIL_P(always_initialized) } {
+            None
+        } else {
+            Some(ffi::rb_sym2id(always_initialized))
+        };
+
         let this = get_struct::<Builder>(this);
-        this.initialize(types);
+        this.initialize(types, always_initialized);
     }
     this
 }

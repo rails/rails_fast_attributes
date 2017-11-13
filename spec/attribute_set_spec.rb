@@ -158,9 +158,9 @@ module ActiveRecord
       expect(attributes.fetch_value(:bar)).to be_nil
     end
 
-    xspecify "the primary_key is always initialized" do
+    specify "the primary_key is always initialized" do
       builder = AttributeSet::Builder.new({ foo: Type::Integer.new }, :foo)
-      attributes = builder.build_from_database
+      attributes = builder.build_from_database({})
 
       expect(attributes.key?(:foo)).to be
       expect(attributes.keys).to eq([:foo])

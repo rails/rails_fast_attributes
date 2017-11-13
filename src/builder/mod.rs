@@ -12,7 +12,7 @@ pub struct Builder {
 }
 
 impl Builder {
-    unsafe fn initialize(&mut self, types: ffi::VALUE) {
+    unsafe fn initialize(&mut self, types: ffi::VALUE, always_initialized: Option<ffi::ID>) {
         if !ffi::RB_TYPE_P(types, ffi::T_HASH) {
             ffi::rb_raise(ffi::rb_eTypeError, cstr!("Expected a Hash"));
         }
@@ -24,6 +24,11 @@ impl Builder {
             Some(push_uninitialized_value),
             &mut self.uninitialized_attributes as *mut _ as *mut _,
         );
+
+        if let Some(pk) = always_initialized {
+            let new_attr = self.uninitialized_attributes[&pk].with_value_from_database(ffi::Qnil);
+            self.uninitialized_attributes.insert(pk, new_attr);
+        }
     }
 
     fn build_from_database(
