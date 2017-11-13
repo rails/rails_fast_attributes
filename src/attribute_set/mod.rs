@@ -19,6 +19,15 @@ impl AttributeSet {
         self.attributes.get(&key)
     }
 
+    fn to_hash(&mut self) -> ffi::VALUE {
+        let result = unsafe { ffi::rb_hash_new() };
+        for (&key, value) in &mut self.attributes {
+            let key = unsafe { ffi::rb_id2sym(key) };
+            unsafe { ffi::rb_hash_aset(result, key, value.value()) };
+        }
+        result
+    }
+
     fn write_from_database(&mut self, key: ffi::ID, value: ffi::VALUE) {
         let new_attr = self.get(key).map(|a| a.with_value_from_database(value));
         if let Some(attr) = new_attr {

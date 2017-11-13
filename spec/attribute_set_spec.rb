@@ -64,7 +64,7 @@ module ActiveRecord
       expect(duped[:bar].value).to eq("foobar")
     end
 
-    xspecify "freezing cloned set does not freeze original" do
+    specify "freezing cloned set does not freeze original" do
       attributes = AttributeSet.new({})
       clone = attributes.clone
 
@@ -74,7 +74,7 @@ module ActiveRecord
       expect(attributes).not_to be_frozen
     end
 
-    xspecify "to_hash returns a hash of the type cast values" do
+    specify "to_hash returns a hash of the type cast values" do
       builder = AttributeSet::Builder.new(foo: Type::Integer.new, bar: Type::Float.new)
       attributes = builder.build_from_database(foo: "1.1", bar: "2.2")
 

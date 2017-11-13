@@ -76,7 +76,7 @@ impl Attribute {
         }
     }
 
-    fn value(&mut self) -> ffi::VALUE {
+    pub fn value(&mut self) -> ffi::VALUE {
         use self::Attribute::*;
 
         unsafe {
