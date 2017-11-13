@@ -35,6 +35,7 @@ pub unsafe fn init() {
     );
     ffi::rb_define_method(attribute_set, cstr!("to_hash"), to_hash as *const _, 0);
     ffi::rb_define_method(attribute_set, cstr!("to_h"), to_hash as *const _, 0);
+    ffi::rb_define_method(attribute_set, cstr!("key?"), key_eh as *const _, 1);
     ffi::rb_define_method(attribute_set, cstr!("keys"), keys as *const _, 0);
     ffi::rb_define_method(
         attribute_set,
@@ -67,6 +68,12 @@ extern "C" fn values_before_type_cast(this: ffi::VALUE) -> ffi::VALUE {
 extern "C" fn to_hash(this: ffi::VALUE) -> ffi::VALUE {
     let this = unsafe { get_struct::<AttributeSet>(this) };
     this.to_hash()
+}
+
+extern "C" fn key_eh(this: ffi::VALUE, key: ffi::VALUE) -> ffi::VALUE {
+    let this = unsafe { get_struct::<AttributeSet>(this) };
+    let key = unsafe { ffi::rb_sym2id(key) };
+    to_ruby_bool(this.has_key(key))
 }
 
 extern "C" fn keys(this: ffi::VALUE) -> ffi::VALUE {

@@ -40,6 +40,10 @@ impl AttributeSet {
         result
     }
 
+    fn has_key(&self, key: ffi::ID) -> bool {
+        self.get(key).map(Attribute::is_initialized).unwrap_or(true)
+    }
+
     fn keys(&self) -> ffi::VALUE {
         let capa = self.attributes.len() as isize;
         let result = unsafe { ffi::rb_ary_new_capa(capa) };

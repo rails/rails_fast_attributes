@@ -115,7 +115,7 @@ module ActiveRecord
       expect(attributes.keys).to eq([:foo])
     end
 
-    xspecify "uninitialized attributes return false for key?" do
+    specify "uninitialized attributes return false for key?" do
       attributes = attributes_with_uninitialized_key
       expect(attributes.key?(:foo)).to be
       expect(attributes.key?(:bar)).not_to be
