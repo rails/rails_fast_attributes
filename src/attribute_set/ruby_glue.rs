@@ -1,3 +1,4 @@
+use attribute::Attribute;
 use ffi;
 use into_ruby::{Allocate, IntoRuby};
 use super::AttributeSet;
@@ -62,6 +63,7 @@ pub unsafe fn init() {
         initialize_copy as *const _,
         1,
     );
+    ffi::rb_define_method(attribute_set, cstr!("map"), map as *const _, 0);
 }
 
 extern "C" fn get(this: ffi::VALUE, key: ffi::VALUE) -> ffi::VALUE {
@@ -110,11 +112,7 @@ extern "C" fn write_from_database(
     unsafe { ffi::Qnil }
 }
 
-extern "C" fn write_from_user(
-    this: ffi::VALUE,
-    key: ffi::VALUE,
-    value: ffi::VALUE,
-) -> ffi::VALUE {
+extern "C" fn write_from_user(this: ffi::VALUE, key: ffi::VALUE, value: ffi::VALUE) -> ffi::VALUE {
     let this = unsafe { get_struct::<AttributeSet>(this) };
     let key = string_or_symbol_to_id(key);
     this.write_from_user(key, value);
@@ -131,4 +129,12 @@ extern "C" fn initialize_copy(this_ptr: ffi::VALUE, other: ffi::VALUE) -> ffi::V
     let other = unsafe { get_struct::<AttributeSet>(other) };
     this.clone_from(other);
     this_ptr
+}
+
+extern "C" fn map(this: ffi::VALUE) -> ffi::VALUE {
+    let this = unsafe { get_struct::<AttributeSet>(this) };
+    this.map(|attr| unsafe {
+        let new_attr = ffi::rb_yield(attr.as_ruby());
+        get_struct::<Attribute>(new_attr).clone()
+    }).into_ruby()
 }

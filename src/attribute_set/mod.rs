@@ -86,6 +86,11 @@ impl AttributeSet {
             .collect();
         Self::new(attributes)
     }
+
+    fn map<'a, F: Fn(&'a Attribute) -> Attribute>(&'a self, f: F) -> Self {
+        let attributes = self.attributes.iter().map(|(&k, v)| (k, f(v))).collect();
+        Self::new(attributes)
+    }
 }
 
 pub unsafe fn init() {

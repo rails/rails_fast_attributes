@@ -238,7 +238,7 @@ module ActiveRecord
       expect(attributes.accessed).to eq([:foo])
     end
 
-    xspecify "#map returns a new attribute set with the changes applied" do
+    specify "#map returns a new attribute set with the changes applied" do
       builder = AttributeSet::Builder.new(foo: Type::Integer.new, bar: Type::Integer.new)
       attributes = builder.build_from_database(foo: "1", bar: "2")
       new_attributes = attributes.map do |attr|
