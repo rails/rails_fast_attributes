@@ -20,6 +20,8 @@ macro_rules! id {
 }
 
 pub mod attribute;
+pub mod attribute_set;
+pub mod builder;
 pub mod into_ruby;
 pub mod util;
 
@@ -35,4 +37,6 @@ pub unsafe extern "C" fn Init_native() {
     ::MODULE = Some(ffi::rb_define_module(cstr!("RailsFastAttributes")));
 
     attribute::init();
+    attribute_set::init();
+    builder::init();
 }

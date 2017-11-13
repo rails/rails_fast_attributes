@@ -9,3 +9,4 @@ module RailsFastAttributes
 end
 
 ActiveRecord::Attribute = RailsFastAttributes::Attribute
+ActiveRecord::AttributeSet::Builder = RailsFastAttributes::Builder

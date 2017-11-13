@@ -1,6 +1,6 @@
 module ActiveRecord
   RSpec.describe AttributeSet do
-    xspecify "building a new set from raw attributes" do
+    specify "building a new set from raw attributes" do
       builder = AttributeSet::Builder.new(foo: Type::Integer.new, bar: Type::Float.new)
       attributes = builder.build_from_database(foo: "1.1", bar: "2.2")
 

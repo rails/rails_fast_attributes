@@ -19,6 +19,17 @@ pub trait IntoRuby: Sized {
         }
     }
 
+    fn as_ruby(&'static self) -> ffi::VALUE {
+        unsafe {
+            ffi::Data_Wrap_Struct(
+                Self::class(),
+                Some(Self::mark_ptr),
+                None,
+                self as *const _ as *mut _,
+            )
+        }
+    }
+
     fn into_ruby(self) -> ffi::VALUE {
         let ptr = Box::into_raw(Box::new(self));
         unsafe {

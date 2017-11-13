@@ -10,7 +10,13 @@ impl IntoRuby for Attribute {
 
     unsafe fn mark(&self) {
         match *self {
-            Attribute::Populated { name, raw_value, ty, ref source, value } => {
+            Attribute::Populated {
+                name,
+                raw_value,
+                ty,
+                ref source,
+                value,
+            } => {
                 ffi::rb_gc_mark(name);
                 ffi::rb_gc_mark(raw_value);
                 ffi::rb_gc_mark(ty);
@@ -62,8 +68,14 @@ pub unsafe fn init() {
         value_before_type_cast as *const _,
         0,
     );
+    ffi::rb_define_method(attribute, cstr!("name"), name as *const _, 0);
     ffi::rb_define_method(attribute, cstr!("value"), value as *const _, 0);
-    ffi::rb_define_method(attribute, cstr!("original_value"), original_value as *const _, 0);
+    ffi::rb_define_method(
+        attribute,
+        cstr!("original_value"),
+        original_value as *const _,
+        0,
+    );
     ffi::rb_define_method(
         attribute,
         cstr!("value_for_database"),
@@ -102,7 +114,12 @@ pub unsafe fn init() {
         1,
     );
     ffi::rb_define_method(attribute, cstr!("with_type"), with_type as *const _, 1);
-    ffi::rb_define_method(attribute, cstr!("initialized?"), initialized_eh as *const _, 0);
+    ffi::rb_define_method(
+        attribute,
+        cstr!("initialized?"),
+        initialized_eh as *const _,
+        0,
+    );
     ffi::rb_define_method(
         attribute,
         cstr!("has_been_read?"),
@@ -164,6 +181,11 @@ extern "C" fn uninitialized(_class: ffi::VALUE, name: ffi::VALUE, ty: ffi::VALUE
 extern "C" fn value_before_type_cast(this: ffi::VALUE) -> ffi::VALUE {
     let this = unsafe { get_struct::<Attribute>(this) };
     this.value_before_type_cast()
+}
+
+extern "C" fn name(this: ffi::VALUE) -> ffi::VALUE {
+    let this = unsafe { get_struct::<Attribute>(this) };
+    this.name()
 }
 
 extern "C" fn value(this: ffi::VALUE) -> ffi::VALUE {

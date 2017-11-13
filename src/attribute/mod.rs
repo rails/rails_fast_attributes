@@ -64,7 +64,7 @@ impl Attribute {
         }
     }
 
-    fn uninitialized(name: ffi::VALUE, ty: ffi::VALUE) -> Self {
+    pub fn uninitialized(name: ffi::VALUE, ty: ffi::VALUE) -> Self {
         Attribute::Uninitialized { name, ty }
     }
 
@@ -143,7 +143,7 @@ impl Attribute {
         Self::from_user(self.name(), value, ty, self.clone())
     }
 
-    fn with_value_from_database(&self, value: ffi::VALUE) -> Self {
+    pub fn with_value_from_database(&self, value: ffi::VALUE) -> Self {
         Self::from_database(self.name(), value, self.ty())
     }
 
