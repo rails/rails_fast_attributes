@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use ordermap::OrderMap;
 
 use attribute::Attribute;
 use attribute_set::AttributeSet;
@@ -8,7 +8,7 @@ mod ruby_glue;
 
 #[derive(Default, Clone)]
 pub struct Builder {
-    uninitialized_attributes: HashMap<ffi::ID, Attribute>,
+    uninitialized_attributes: OrderMap<ffi::ID, Attribute>,
 }
 
 impl Builder {
@@ -62,7 +62,7 @@ extern "C" fn push_uninitialized_value(
     value: ffi::VALUE,
     hash_ptr: *mut libc::c_void,
 ) -> ffi::st_retval {
-    let hash_ptr = hash_ptr as *mut HashMap<ffi::ID, Attribute>;
+    let hash_ptr = hash_ptr as *mut OrderMap<ffi::ID, Attribute>;
     let hash = unsafe { hash_ptr.as_mut().unwrap() };
 
     let id = unsafe { ffi::rb_sym2id(key) };
@@ -78,7 +78,7 @@ extern "C" fn push_value(
     value: ffi::VALUE,
     data_ptr: *mut libc::c_void,
 ) -> ffi::st_retval {
-    let data_ptr = data_ptr as *mut HashMap<ffi::ID, Attribute>;
+    let data_ptr = data_ptr as *mut OrderMap<ffi::ID, Attribute>;
     let hash = unsafe { data_ptr.as_mut().unwrap() };
 
     let id = unsafe { ffi::rb_sym2id(key) };

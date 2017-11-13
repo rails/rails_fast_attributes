@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use ordermap::OrderMap;
 
 use attribute::Attribute;
 use ffi;
@@ -7,11 +7,11 @@ mod ruby_glue;
 
 #[derive(Default, Clone)]
 pub struct AttributeSet {
-    attributes: HashMap<ffi::ID, Attribute>,
+    attributes: OrderMap<ffi::ID, Attribute>,
 }
 
 impl AttributeSet {
-    pub fn new(attributes: HashMap<ffi::ID, Attribute>) -> Self {
+    pub fn new(attributes: OrderMap<ffi::ID, Attribute>) -> Self {
         Self { attributes }
     }
 

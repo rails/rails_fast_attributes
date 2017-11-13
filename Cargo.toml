@@ -10,3 +10,4 @@ crate-type = ["cdylib"]
 libcruby-sys = { path = "/Users/sean/builds/helix/crates/libcruby-sys" }
 libc = "0.2.0"
 lazy_static = "0.2.9"
+ordermap = "0.3.0"

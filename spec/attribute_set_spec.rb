@@ -82,7 +82,7 @@ module ActiveRecord
       expect(attributes.to_h).to eq({ foo: 1, bar: 2.2 })
     end
 
-    xspecify "to_hash maintains order" do
+    specify "to_hash maintains order" do
       builder = AttributeSet::Builder.new(foo: Type::Integer.new, bar: Type::Float.new)
       attributes = builder.build_from_database(foo: "2.2", bar: "3.3")
 
