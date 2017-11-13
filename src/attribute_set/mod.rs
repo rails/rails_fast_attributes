@@ -41,7 +41,9 @@ impl AttributeSet {
     }
 
     fn has_key(&self, key: ffi::ID) -> bool {
-        self.get(key).map(Attribute::is_initialized).unwrap_or(true)
+        self.get(key)
+            .map(Attribute::is_initialized)
+            .unwrap_or(false)
     }
 
     fn keys(&self) -> ffi::VALUE {

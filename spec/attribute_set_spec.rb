@@ -121,7 +121,7 @@ module ActiveRecord
       expect(attributes.key?(:bar)).not_to be
     end
 
-    xspecify "unknown attributes return false for key?" do
+    specify "unknown attributes return false for key?" do
       attributes = attributes_with_uninitialized_key
       expect(attributes.key?(:wibble)).not_to be
     end
