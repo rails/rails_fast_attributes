@@ -182,9 +182,9 @@ module ActiveRecord
       end
     end
 
-    xspecify "write_from_database sets the attribute with database typecasting" do
+    specify "write_from_database sets the attribute with database typecasting" do
       builder = AttributeSet::Builder.new(foo: MyType.new)
-      attributes = builder.build_from_database
+      attributes = builder.build_from_database({})
 
       expect(attributes.fetch_value(:foo)).to be_nil
 
@@ -193,9 +193,9 @@ module ActiveRecord
       expect(attributes.fetch_value(:foo)).to eq("value from database")
     end
 
-    xspecify "write_from_user sets the attribute with user typecasting" do
+    specify "write_from_user sets the attribute with user typecasting" do
       builder = AttributeSet::Builder.new(foo: MyType.new)
-      attributes = builder.build_from_database
+      attributes = builder.build_from_database({})
 
       expect(attributes.fetch_value(:foo)).to be_nil
 
@@ -209,7 +209,7 @@ module ActiveRecord
       builder.build_from_database(foo: "1.1")
     end
 
-    xspecify "freezing doesn't prevent the set from materializing" do
+    specify "freezing doesn't prevent the set from materializing" do
       builder = AttributeSet::Builder.new(foo: Type::String.new)
       attributes = builder.build_from_database(foo: "1")
 

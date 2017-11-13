@@ -49,6 +49,12 @@ pub unsafe fn init() {
         write_from_database as *const _,
         2,
     );
+    ffi::rb_define_method(
+        attribute_set,
+        cstr!("write_from_user"),
+        write_from_user as *const _,
+        2,
+    );
     ffi::rb_define_method(attribute_set, cstr!("deep_dup"), deep_dup as *const _, 0);
     ffi::rb_define_method(
         attribute_set,
@@ -101,6 +107,17 @@ extern "C" fn write_from_database(
     let this = unsafe { get_struct::<AttributeSet>(this) };
     let key = unsafe { ffi::rb_sym2id(key) };
     this.write_from_database(key, value);
+    unsafe { ffi::Qnil }
+}
+
+extern "C" fn write_from_user(
+    this: ffi::VALUE,
+    key: ffi::VALUE,
+    value: ffi::VALUE,
+) -> ffi::VALUE {
+    let this = unsafe { get_struct::<AttributeSet>(this) };
+    let key = unsafe { ffi::rb_sym2id(key) };
+    this.write_from_user(key, value);
     unsafe { ffi::Qnil }
 }
 

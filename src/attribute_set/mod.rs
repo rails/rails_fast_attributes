@@ -72,6 +72,13 @@ impl AttributeSet {
         }
     }
 
+    fn write_from_user(&mut self, key: ffi::ID, value: ffi::VALUE) {
+        let new_attr = self.get(key).map(|a| a.with_value_from_user(value));
+        if let Some(attr) = new_attr {
+            self.attributes.insert(key, attr);
+        }
+    }
+
     fn deep_dup(&self) -> Self {
         let attributes = self.attributes
             .iter()
