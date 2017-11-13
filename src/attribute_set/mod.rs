@@ -25,6 +25,14 @@ impl AttributeSet {
             self.attributes.insert(key, attr);
         }
     }
+
+    fn deep_dup(&self) -> Self {
+        let attributes = self.attributes
+            .iter()
+            .map(|(&k, v)| (k, v.deep_dup()))
+            .collect();
+        Self::new(attributes)
+    }
 }
 
 pub unsafe fn init() {

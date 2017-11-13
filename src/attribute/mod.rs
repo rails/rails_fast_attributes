@@ -296,6 +296,27 @@ impl Attribute {
             Uninitialized { .. } => unsafe { ffi::Qnil },
         }
     }
+
+    pub fn deep_dup(&self) -> Self {
+        use self::Attribute::Populated;
+
+        match *self {
+            Populated {
+                ref source,
+                name,
+                raw_value,
+                ty,
+                value: Some(value),
+            } => Populated {
+                source: source.clone(),
+                name,
+                raw_value,
+                ty,
+                value: Some(unsafe { ffi::rb_obj_dup(value) }),
+            },
+            _ => self.clone(),
+        }
+    }
 }
 
 impl PartialEq for Attribute {

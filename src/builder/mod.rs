@@ -26,7 +26,11 @@ impl Builder {
         );
     }
 
-    fn build_from_database(&self, values: ffi::VALUE, additional_types: Option<ffi::VALUE>) -> AttributeSet {
+    fn build_from_database(
+        &self,
+        values: ffi::VALUE,
+        additional_types: Option<ffi::VALUE>,
+    ) -> AttributeSet {
         let mut attributes = self.uninitialized_attributes.clone();
 
         unsafe {

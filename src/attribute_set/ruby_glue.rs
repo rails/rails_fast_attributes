@@ -27,8 +27,19 @@ pub unsafe fn init() {
     ffi::rb_define_alloc_func(attribute_set, Some(AttributeSet::allocate));
 
     ffi::rb_define_method(attribute_set, cstr!("[]"), get as *const _, 1);
-    ffi::rb_define_method(attribute_set, cstr!("write_from_database"), write_from_database as *const _, 2);
-    ffi::rb_define_method(attribute_set, cstr!("initialize_copy"), initialize_copy as *const _, 1);
+    ffi::rb_define_method(
+        attribute_set,
+        cstr!("write_from_database"),
+        write_from_database as *const _,
+        2,
+    );
+    ffi::rb_define_method(attribute_set, cstr!("deep_dup"), deep_dup as *const _, 0);
+    ffi::rb_define_method(
+        attribute_set,
+        cstr!("initialize_copy"),
+        initialize_copy as *const _,
+        1,
+    );
 }
 
 extern "C" fn get(this: ffi::VALUE, key: ffi::VALUE) -> ffi::VALUE {
@@ -39,11 +50,20 @@ extern "C" fn get(this: ffi::VALUE, key: ffi::VALUE) -> ffi::VALUE {
         .unwrap_or(unsafe { ffi::Qnil })
 }
 
-extern "C" fn write_from_database(this: ffi::VALUE, key: ffi::VALUE, value: ffi::VALUE) -> ffi::VALUE {
+extern "C" fn write_from_database(
+    this: ffi::VALUE,
+    key: ffi::VALUE,
+    value: ffi::VALUE,
+) -> ffi::VALUE {
     let this = unsafe { get_struct::<AttributeSet>(this) };
     let key = unsafe { ffi::rb_sym2id(key) };
     this.write_from_database(key, value);
     unsafe { ffi::Qnil }
+}
+
+extern "C" fn deep_dup(this_ptr: ffi::VALUE) -> ffi::VALUE {
+    let this = unsafe { get_struct::<AttributeSet>(this_ptr) };
+    this.deep_dup().into_ruby()
 }
 
 extern "C" fn initialize_copy(this_ptr: ffi::VALUE, other: ffi::VALUE) -> ffi::VALUE {

@@ -42,7 +42,11 @@ extern "C" fn initialize(this: ffi::VALUE, types: ffi::VALUE) -> ffi::VALUE {
     this
 }
 
-extern "C" fn build_from_database(argc: libc::c_int, argv: *const ffi::VALUE, this: ffi::VALUE) -> ffi::VALUE {
+extern "C" fn build_from_database(
+    argc: libc::c_int,
+    argv: *const ffi::VALUE,
+    this: ffi::VALUE,
+) -> ffi::VALUE {
     unsafe {
         let this = get_struct::<Builder>(this);
         let mut values = ffi::Qnil;
@@ -55,6 +59,7 @@ extern "C" fn build_from_database(argc: libc::c_int, argv: *const ffi::VALUE, th
             Some(additional_types)
         };
 
-        this.build_from_database(values, additional_types).into_ruby()
+        this.build_from_database(values, additional_types)
+            .into_ruby()
     }
 }

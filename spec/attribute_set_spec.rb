@@ -46,7 +46,7 @@ module ActiveRecord
       expect(duped[:bar].value).to eq("foobar")
     end
 
-    xspecify "deep_duping creates a new hash and dups each attribute" do
+    specify "deep_duping creates a new hash and dups each attribute" do
       builder = AttributeSet::Builder.new(foo: Type::Integer.new, bar: Type::String.new)
       attributes = builder.build_from_database(foo: 1, bar: "foo")
 
