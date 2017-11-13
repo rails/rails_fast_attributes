@@ -27,6 +27,12 @@ pub unsafe fn init() {
     ffi::rb_define_alloc_func(attribute_set, Some(AttributeSet::allocate));
 
     ffi::rb_define_method(attribute_set, cstr!("[]"), get as *const _, 1);
+    ffi::rb_define_method(
+        attribute_set,
+        cstr!("values_before_type_cast"),
+        values_before_type_cast as *const _,
+        0,
+    );
     ffi::rb_define_method(attribute_set, cstr!("to_hash"), to_hash as *const _, 0);
     ffi::rb_define_method(attribute_set, cstr!("to_h"), to_hash as *const _, 0);
     ffi::rb_define_method(
@@ -50,6 +56,11 @@ extern "C" fn get(this: ffi::VALUE, key: ffi::VALUE) -> ffi::VALUE {
     this.get(key)
         .map(IntoRuby::as_ruby)
         .unwrap_or(unsafe { ffi::Qnil })
+}
+
+extern "C" fn values_before_type_cast(this: ffi::VALUE) -> ffi::VALUE {
+    let this = unsafe { get_struct::<AttributeSet>(this) };
+    this.values_before_type_cast()
 }
 
 extern "C" fn to_hash(this: ffi::VALUE) -> ffi::VALUE {

@@ -19,6 +19,15 @@ impl AttributeSet {
         self.attributes.get(&key)
     }
 
+    fn values_before_type_cast(&self) -> ffi::VALUE {
+        let result = unsafe { ffi::rb_hash_new() };
+        for (&key, value) in &self.attributes {
+            let key = unsafe { ffi::rb_id2sym(key) };
+            unsafe { ffi::rb_hash_aset(result, key, value.value_before_type_cast()) };
+        }
+        result
+    }
+
     fn to_hash(&mut self) -> ffi::VALUE {
         let result = unsafe { ffi::rb_hash_new() };
         for (&key, value) in &mut self.attributes {

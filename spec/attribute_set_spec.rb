@@ -92,7 +92,7 @@ module ActiveRecord
       expect(hash.to_a).to eq([[:foo, 2], [:bar, 3.3]])
     end
 
-    xspecify "values_before_type_cast" do
+    specify "values_before_type_cast" do
       builder = AttributeSet::Builder.new(foo: Type::Integer.new, bar: Type::Integer.new)
       attributes = builder.build_from_database(foo: "1.1", bar: "2.2")
 

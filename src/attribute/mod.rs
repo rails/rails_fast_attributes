@@ -68,7 +68,7 @@ impl Attribute {
         Attribute::Uninitialized { name, ty }
     }
 
-    fn value_before_type_cast(&self) -> ffi::VALUE {
+    pub fn value_before_type_cast(&self) -> ffi::VALUE {
         if let Attribute::Populated { raw_value, .. } = *self {
             raw_value
         } else {
