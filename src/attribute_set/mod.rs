@@ -18,6 +18,13 @@ impl AttributeSet {
     fn get(&self, key: ffi::ID) -> Option<&Attribute> {
         self.attributes.get(&key)
     }
+
+    fn write_from_database(&mut self, key: ffi::ID, value: ffi::VALUE) {
+        let new_attr = self.get(key).map(|a| a.with_value_from_database(value));
+        if let Some(attr) = new_attr {
+            self.attributes.insert(key, attr);
+        }
+    }
 }
 
 pub unsafe fn init() {

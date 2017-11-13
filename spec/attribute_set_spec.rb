@@ -18,7 +18,8 @@ module ActiveRecord
       expect(attributes[:bar].value).to eq(4)
     end
 
-    xspecify "[] returns a null object" do
+    specify "[] returns a null object" do
+      skip "I'm not sure we need this in the Rust version, since we use `Option` internally"
       builder = AttributeSet::Builder.new(foo: Type::Float.new)
       attributes = builder.build_from_database(foo: "3.3")
 
@@ -27,7 +28,7 @@ module ActiveRecord
       expect(attributes[:bar].name).to eq(:bar)
     end
 
-    xspecify "duping creates a new hash, but does not dup the attributes" do
+    specify "duping creates a new hash, but does not dup the attributes" do
       builder = AttributeSet::Builder.new(foo: Type::Integer.new, bar: Type::String.new)
       attributes = builder.build_from_database(foo: 1, bar: "foo")
 
