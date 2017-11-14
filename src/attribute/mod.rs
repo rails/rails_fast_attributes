@@ -147,7 +147,7 @@ impl Attribute {
         Self::from_database(self.name(), value, self.ty())
     }
 
-    fn with_cast_value(&self, value: ffi::VALUE) -> Self {
+    pub fn with_cast_value(&self, value: ffi::VALUE) -> Self {
         Self::from_cast_value(self.name(), value, self.ty())
     }
 

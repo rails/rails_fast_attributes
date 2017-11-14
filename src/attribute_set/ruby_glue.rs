@@ -57,6 +57,12 @@ pub unsafe fn init() {
         write_from_user as *const _,
         2,
     );
+    ffi::rb_define_method(
+        attribute_set,
+        cstr!("write_cast_value"),
+        write_cast_value as *const _,
+        2,
+    );
     ffi::rb_define_method(attribute_set, cstr!("deep_dup"), deep_dup as *const _, 0);
     ffi::rb_define_method(
         attribute_set,
@@ -131,6 +137,13 @@ extern "C" fn write_from_user(this: ffi::VALUE, key: ffi::VALUE, value: ffi::VAL
     let this = unsafe { get_struct::<AttributeSet>(this) };
     let key = string_or_symbol_to_id(key);
     this.write_from_user(key, value);
+    unsafe { ffi::Qnil }
+}
+
+extern "C" fn write_cast_value(this: ffi::VALUE, key: ffi::VALUE, value: ffi::VALUE) -> ffi::VALUE {
+    let this = unsafe { get_struct::<AttributeSet>(this) };
+    let key = string_or_symbol_to_id(key);
+    this.write_cast_value(key, value);
     unsafe { ffi::Qnil }
 }
 
