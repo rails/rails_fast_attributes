@@ -266,5 +266,25 @@ module ActiveRecord
 
       expect(attributes).to eq(marshalled)
     end
+
+    specify "write_from_database raises on missing attributes" do
+      builder = AttributeSet::Builder.new({})
+      attributes = builder.build_from_database({})
+
+      expect {
+        attributes.write_from_database(:foo, nil)
+      }.to raise_error(ActiveModel::MissingAttributeError)
+        .with_message eq("can't write unknown attribute `foo`")
+    end
+
+    specify "write_from_user raises on missing attributes" do
+      builder = AttributeSet::Builder.new({})
+      attributes = builder.build_from_database({})
+
+      expect {
+        attributes.write_from_user(:bar, nil)
+      }.to raise_error(ActiveModel::MissingAttributeError)
+        .with_message("can't write unknown attribute `bar`")
+    end
   end
 end

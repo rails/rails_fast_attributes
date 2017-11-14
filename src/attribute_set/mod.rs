@@ -1,4 +1,5 @@
 use ordermap::OrderMap;
+use std::ffi::CString;
 
 use attribute::Attribute;
 use ffi;
@@ -68,6 +69,8 @@ impl AttributeSet {
         let new_attr = self.get(key).map(|a| a.with_value_from_database(value));
         if let Some(attr) = new_attr {
             self.attributes.insert(key, attr);
+        } else {
+            missing_attribute(key)
         }
     }
 
@@ -75,6 +78,8 @@ impl AttributeSet {
         let new_attr = self.get(key).map(|a| a.with_value_from_user(value));
         if let Some(attr) = new_attr {
             self.attributes.insert(key, attr);
+        } else {
+            missing_attribute(key)
         }
     }
 
@@ -82,6 +87,8 @@ impl AttributeSet {
         let new_attr = self.get(key).map(|a| a.with_cast_value(value));
         if let Some(attr) = new_attr {
             self.attributes.insert(key, attr);
+        } else {
+            missing_attribute(key)
         }
     }
 
@@ -109,4 +116,22 @@ impl AttributeSet {
 
 pub unsafe fn init() {
     self::ruby_glue::init();
+}
+
+fn missing_attribute(key: ffi::ID) -> ! {
+    use std::{str, slice};
+
+    unsafe {
+        let active_model = ffi::rb_const_get(ffi::rb_cObject, id!("ActiveModel"));
+        let missing_attribute = ffi::rb_const_get(active_model, id!("MissingAttributeError"));
+        let attr_name = ffi::rb_id2str(key);
+        let attr_name_bytes = slice::from_raw_parts(
+            ffi::RSTRING_PTR(attr_name) as *const u8,
+            ffi::RSTRING_LEN(attr_name) as usize,
+        );
+        let attr_name = str::from_utf8_unchecked(attr_name_bytes);
+        let message = format!("can't write unknown attribute `{}`", attr_name);
+        let c_message = CString::new(message).unwrap();
+        ffi::rb_raise(missing_attribute, c_message.as_ptr());
+    }
 }
