@@ -69,6 +69,7 @@ pub unsafe fn init() {
         0,
     );
     ffi::rb_define_method(attribute, cstr!("name"), name as *const _, 0);
+    ffi::rb_define_method(attribute, cstr!("type"), ty as *const _, 0);
     ffi::rb_define_method(attribute, cstr!("value"), value as *const _, 0);
     ffi::rb_define_method(
         attribute,
@@ -188,6 +189,11 @@ extern "C" fn value_before_type_cast(this: ffi::VALUE) -> ffi::VALUE {
 extern "C" fn name(this: ffi::VALUE) -> ffi::VALUE {
     let this = unsafe { get_struct::<Attribute>(this) };
     this.name()
+}
+
+extern "C" fn ty(this: ffi::VALUE) -> ffi::VALUE {
+    let this = unsafe { get_struct::<Attribute>(this) };
+    this.ty()
 }
 
 extern "C" fn value(this: ffi::VALUE) -> ffi::VALUE {
