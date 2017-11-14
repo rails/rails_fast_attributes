@@ -29,7 +29,6 @@ module ActiveRecord
     end
 
     specify "[] returns a null object" do
-      skip "I'm not sure we need this in the Rust version, since we use `Option` internally"
       builder = AttributeSet::Builder.new(foo: Type::Float.new)
       attributes = builder.build_from_database(foo: "3.3")
 

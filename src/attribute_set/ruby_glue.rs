@@ -71,12 +71,14 @@ pub unsafe fn init() {
     ffi::rb_define_method(attribute_set, cstr!("_load_data"), load_data as *const _, 1);
 }
 
-extern "C" fn get(this: ffi::VALUE, key: ffi::VALUE) -> ffi::VALUE {
+extern "C" fn get(this: ffi::VALUE, name: ffi::VALUE) -> ffi::VALUE {
     let this = unsafe { get_struct::<AttributeSet>(this) };
-    let key = string_or_symbol_to_id(key);
+    let key = string_or_symbol_to_id(name);
     this.get(key)
         .map(IntoRuby::as_ruby)
-        .unwrap_or(unsafe { ffi::Qnil })
+        .unwrap_or_else(|| unsafe {
+            ffi::rb_funcall(Attribute::class(), id!("null"), 1, name)
+        })
 }
 
 extern "C" fn set(this: ffi::VALUE, key: ffi::VALUE, value: ffi::VALUE) -> ffi::VALUE {
