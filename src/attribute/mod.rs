@@ -175,6 +175,18 @@ impl Attribute {
         }
     }
 
+    pub fn came_from_user(&self) -> bool {
+        if let Attribute::Populated {
+            source: Source::FromUser(_),
+            ..
+        } = *self
+        {
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn is_initialized(&self) -> bool {
         if let Attribute::Uninitialized { .. } = *self {
             false

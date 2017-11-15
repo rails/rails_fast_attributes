@@ -249,6 +249,14 @@ module ActiveRecord
       expect(attribute.with_type(Type::Integer.new).value).to eq(1)
     end
 
+    specify "#came_from_user?" do
+      from_user = attribute_from_user(:foo, nil, nil)
+      from_database = Attribute.from_database(:foo, nil, nil)
+
+      expect(from_user.came_from_user?).to be
+      expect(from_database.came_from_user?).not_to be
+    end
+
     def attribute_from_user(name, value, type)
       Attribute.from_user(name, value, type, Attribute.uninitialized(name, type))
     end

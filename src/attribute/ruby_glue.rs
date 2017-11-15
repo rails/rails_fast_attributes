@@ -123,6 +123,12 @@ pub unsafe fn init() {
     );
     ffi::rb_define_method(
         attribute,
+        cstr!("came_from_user?"),
+        came_from_user as *const _,
+        0,
+    );
+    ffi::rb_define_method(
+        attribute,
         cstr!("has_been_read?"),
         has_been_read as *const _,
         0,
@@ -249,6 +255,11 @@ extern "C" fn with_type(this: ffi::VALUE, ty: ffi::VALUE) -> ffi::VALUE {
 extern "C" fn initialized_eh(this: ffi::VALUE) -> ffi::VALUE {
     let this = unsafe { get_struct::<Attribute>(this) };
     to_ruby_bool(this.is_initialized())
+}
+
+extern "C" fn came_from_user(this: ffi::VALUE) -> ffi::VALUE {
+    let this = unsafe { get_struct::<Attribute>(this) };
+    to_ruby_bool(this.came_from_user())
 }
 
 extern "C" fn has_been_read(this: ffi::VALUE) -> ffi::VALUE {
