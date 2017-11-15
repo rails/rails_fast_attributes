@@ -41,17 +41,17 @@ extern "C" fn initialize(
 ) -> ffi::VALUE {
     unsafe {
         let mut types = ffi::Qnil;
-        let mut always_initialized = ffi::Qnil;
-        ffi::rb_scan_args(argc, argv, cstr!("11"), &mut types, &mut always_initialized);
+        let mut default_attributes = ffi::Qnil;
+        ffi::rb_scan_args(argc, argv, cstr!("11"), &mut types, &mut default_attributes);
 
-        let always_initialized = if { ffi::RB_NIL_P(always_initialized) } {
+        let default_attributes = if ffi::RB_NIL_P(default_attributes) {
             None
         } else {
-            Some(string_or_symbol_to_id(always_initialized))
+            Some(default_attributes)
         };
 
         let this = get_struct::<Builder>(this);
-        this.initialize(types, always_initialized);
+        this.initialize(types, default_attributes);
     }
     this
 }
@@ -65,9 +65,13 @@ extern "C" fn build_from_database(
         let this = get_struct::<Builder>(this);
         let mut values = ffi::Qnil;
         let mut additional_types = ffi::Qnil;
-        ffi::rb_scan_args(argc, argv, cstr!("11"), &mut values, &mut additional_types);
+        ffi::rb_scan_args(argc, argv, cstr!("02"), &mut values, &mut additional_types);
 
-        let additional_types = if { ffi::RB_NIL_P(additional_types) } {
+        if ffi::RB_NIL_P(values) {
+            values = ffi::rb_hash_new();
+        }
+
+        let additional_types = if ffi::RB_NIL_P(additional_types) {
             None
         } else {
             Some(additional_types)

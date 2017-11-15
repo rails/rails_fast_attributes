@@ -119,7 +119,7 @@ pub unsafe fn init() {
 }
 
 fn missing_attribute(key: ffi::ID) -> ! {
-    use std::{str, slice};
+    use std::{slice, str};
 
     unsafe {
         let active_model = ffi::rb_const_get(ffi::rb_cObject, id!("ActiveModel"));

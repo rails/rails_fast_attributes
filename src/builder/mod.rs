@@ -3,7 +3,7 @@ use ordermap::OrderMap;
 use attribute::Attribute;
 use attribute_set::AttributeSet;
 use {ffi, libc};
-use util::string_or_symbol_to_id;
+use util::*;
 
 mod ruby_glue;
 
@@ -13,7 +13,7 @@ pub struct Builder {
 }
 
 impl Builder {
-    unsafe fn initialize(&mut self, types: ffi::VALUE, always_initialized: Option<ffi::ID>) {
+    unsafe fn initialize(&mut self, types: ffi::VALUE, defaults: Option<ffi::VALUE>) {
         if !ffi::RB_TYPE_P(types, ffi::T_HASH) {
             ffi::rb_raise(ffi::rb_eTypeError, cstr!("Expected a Hash"));
         }
@@ -25,10 +25,12 @@ impl Builder {
             Some(push_uninitialized_value),
             &mut self.uninitialized_attributes as *mut _ as *mut _,
         );
-
-        if let Some(pk) = always_initialized {
-            let new_attr = self.uninitialized_attributes[&pk].with_value_from_database(ffi::Qnil);
-            self.uninitialized_attributes.insert(pk, new_attr);
+        if let Some(defaults) = defaults {
+            ffi::rb_hash_foreach(
+                defaults,
+                Some(push_attribute),
+                &mut self.uninitialized_attributes as *mut _ as *mut _,
+            );
         }
     }
 
@@ -99,6 +101,22 @@ extern "C" fn push_value(
     };
 
     hash.insert(id, new_attr);
+
+    ffi::st_retval::ST_CONTINUE
+}
+
+extern "C" fn push_attribute(
+    key: ffi::VALUE,
+    value: ffi::VALUE,
+    data_ptr: *mut libc::c_void,
+) -> ffi::st_retval {
+    let data_ptr = data_ptr as *mut OrderMap<ffi::ID, Attribute>;
+    let hash = unsafe { data_ptr.as_mut().unwrap() };
+
+    let id = string_or_symbol_to_id(key);
+    let attr = unsafe { get_struct::<Attribute>(value) };
+
+    hash.insert(id, attr.clone());
 
     ffi::st_retval::ST_CONTINUE
 }

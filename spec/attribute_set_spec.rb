@@ -151,7 +151,7 @@ module ActiveRecord
     specify "fetch_value returns nil for unknown attributes when types has a default" do
       types = Hash.new(Type::Value.new)
       builder = AttributeSet::Builder.new(types)
-      attributes = builder.build_from_database({})
+      attributes = builder.build_from_database
 
       expect(attributes.fetch_value(:wibble) { "hello" }).to be_nil
     end
@@ -168,8 +168,9 @@ module ActiveRecord
     end
 
     specify "the primary_key is always initialized" do
-      builder = AttributeSet::Builder.new({ foo: Type::Integer.new }, :foo)
-      attributes = builder.build_from_database({})
+      default_attributes = { foo: Attribute.from_database(:foo, nil, nil) }
+      builder = AttributeSet::Builder.new({ foo: Type::Integer.new }, default_attributes)
+      attributes = builder.build_from_database
 
       expect(attributes.key?(:foo)).to be
       expect(attributes.keys).to eq([:foo])
@@ -193,7 +194,7 @@ module ActiveRecord
 
     specify "write_from_database sets the attribute with database typecasting" do
       builder = AttributeSet::Builder.new(foo: MyType.new)
-      attributes = builder.build_from_database({})
+      attributes = builder.build_from_database
 
       expect(attributes.fetch_value(:foo)).to be_nil
 
@@ -204,7 +205,7 @@ module ActiveRecord
 
     specify "write_from_user sets the attribute with user typecasting" do
       builder = AttributeSet::Builder.new(foo: MyType.new)
-      attributes = builder.build_from_database({})
+      attributes = builder.build_from_database
 
       expect(attributes.fetch_value(:foo)).to be_nil
 
@@ -269,7 +270,7 @@ module ActiveRecord
 
     specify "write_from_database raises on missing attributes" do
       builder = AttributeSet::Builder.new({})
-      attributes = builder.build_from_database({})
+      attributes = builder.build_from_database
 
       expect {
         attributes.write_from_database(:foo, nil)
@@ -279,7 +280,7 @@ module ActiveRecord
 
     specify "write_from_user raises on missing attributes" do
       builder = AttributeSet::Builder.new({})
-      attributes = builder.build_from_database({})
+      attributes = builder.build_from_database
 
       expect {
         attributes.write_from_user(:bar, nil)
