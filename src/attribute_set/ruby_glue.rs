@@ -1,5 +1,5 @@
 use attribute::Attribute;
-use ffi;
+use {ffi, libc};
 use into_ruby::{Allocate, IntoRuby};
 use super::AttributeSet;
 use util::*;
@@ -76,6 +76,7 @@ pub unsafe fn init() {
     ffi::rb_define_method(attribute_set, cstr!("=="), equals as *const _, 1);
     ffi::rb_define_method(attribute_set, cstr!("_dump_data"), dump_data as *const _, 0);
     ffi::rb_define_method(attribute_set, cstr!("_load_data"), load_data as *const _, 1);
+    ffi::rb_define_method(attribute_set, cstr!("except"), except as *const _, -1);
 }
 
 extern "C" fn get(this: ffi::VALUE, name: ffi::VALUE) -> ffi::VALUE {
@@ -218,5 +219,22 @@ extern "C" fn load_data(this: ffi::VALUE, data: ffi::VALUE) -> ffi::VALUE {
             })
             .collect();
         ffi::Qnil
+    }
+}
+
+extern "C" fn except(argc: libc::c_int, argv: *const ffi::VALUE, this: ffi::VALUE) -> ffi::VALUE {
+    unsafe {
+        let this = get_struct::<AttributeSet>(this);
+        let result = ffi::rb_hash_new();
+
+        for attr in this.attributes.values() {
+            ffi::rb_hash_aset(
+                result,
+                attr.name(),
+                attr.as_ruby(),
+            );
+        }
+
+        ffi::rb_funcallv(result, id!("except"), argc, argv)
     }
 }
