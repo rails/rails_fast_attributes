@@ -9,6 +9,8 @@ impl IntoRuby for Attribute {
     }
 
     unsafe fn mark(&self) {
+        use self::Source::*;
+
         match *self {
             Attribute::Populated {
                 name,
@@ -20,8 +22,10 @@ impl IntoRuby for Attribute {
                 ffi::rb_gc_mark(name);
                 raw_value.mark();
                 ffi::rb_gc_mark(ty);
-                if let Source::FromUser(ref orig) = *source {
-                    orig.mark();
+                match *source {
+                    FromUser(ref orig) => orig.mark(),
+                    UserProvidedDefault(Some(ref orig)) => orig.mark(),
+                    UserProvidedDefault(None) | FromDatabase | PreCast => {} // noop
                 }
                 if let Some(value) = value {
                     ffi::rb_gc_mark(value);
