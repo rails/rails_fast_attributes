@@ -27,6 +27,8 @@ pub unsafe fn init() {
 
     ffi::rb_define_alloc_func(attribute_set, Some(AttributeSet::allocate));
 
+    ffi::rb_define_method(attribute_set, cstr!("fetch"), fetch as *const _, 1);
+    ffi::rb_define_method(attribute_set, cstr!("each_value"), each_value as *const _, 0);
     ffi::rb_define_method(attribute_set, cstr!("[]"), get as *const _, 1);
     ffi::rb_define_method(attribute_set, cstr!("[]="), set as *const _, 2);
     ffi::rb_define_method(
@@ -77,6 +79,28 @@ pub unsafe fn init() {
     ffi::rb_define_method(attribute_set, cstr!("_dump_data"), dump_data as *const _, 0);
     ffi::rb_define_method(attribute_set, cstr!("_load_data"), load_data as *const _, 1);
     ffi::rb_define_method(attribute_set, cstr!("except"), except as *const _, -1);
+}
+
+extern "C" fn fetch(this: ffi::VALUE, name: ffi::VALUE) -> ffi::VALUE {
+    let this = unsafe { get_struct::<AttributeSet>(this) };
+    let key = string_or_symbol_to_id(name);
+    this.get(key)
+        .map(IntoRuby::as_ruby)
+        .unwrap_or_else(|| unsafe { ffi::rb_yield(ffi::Qnil) })
+}
+
+extern "C" fn each_value(this: ffi::VALUE) -> ffi::VALUE {
+    unsafe {
+        if !ffi::rb_block_given_p() {
+            return ffi::rb_funcall(this, id!("to_enum"), 1, ffi::rb_id2sym(id!("each_value")));
+        }
+
+        let this = get_struct::<AttributeSet>(this);
+        this.each_value(|value| {
+            ffi::rb_yield(value.as_ruby());
+        });
+        ffi::Qnil
+    }
 }
 
 extern "C" fn get(this: ffi::VALUE, name: ffi::VALUE) -> ffi::VALUE {

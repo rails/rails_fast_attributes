@@ -17,6 +17,12 @@ impl AttributeSet {
         Self { attributes }
     }
 
+    fn each_value<'a, F: Fn(&'a Attribute)>(&'a self, f: F) {
+        for attr in self.attributes.values() {
+            f(attr)
+        }
+    }
+
     fn get(&self, key: ffi::ID) -> Option<&Attribute> {
         self.attributes.get(&key)
     }
