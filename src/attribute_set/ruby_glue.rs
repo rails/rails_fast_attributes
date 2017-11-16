@@ -228,11 +228,7 @@ extern "C" fn except(argc: libc::c_int, argv: *const ffi::VALUE, this: ffi::VALU
         let result = ffi::rb_hash_new();
 
         for attr in this.attributes.values() {
-            ffi::rb_hash_aset(
-                result,
-                attr.name(),
-                attr.as_ruby(),
-            );
+            ffi::rb_hash_aset(result, attr.name(), attr.as_ruby());
         }
 
         ffi::rb_funcallv(result, id!("except"), argc, argv)
