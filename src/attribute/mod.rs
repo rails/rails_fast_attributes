@@ -74,7 +74,7 @@ impl Attribute {
             raw_value: MaybeProc::NotProc(value),
             ty,
             source: Source::PreCast,
-            value: Some(value),
+            value: None,
         }
     }
 
