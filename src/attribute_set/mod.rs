@@ -75,11 +75,21 @@ impl AttributeSet {
     }
 
     fn write_from_user(&mut self, key: ffi::ID, value: ffi::VALUE) {
-        let new_attr = self.get(key).map(|a| a.with_value_from_user(value));
-        if let Some(attr) = new_attr {
-            self.attributes.insert(key, attr);
-        } else {
-            missing_attribute(key)
+        use ordermap::Entry::*;
+        use std::mem::swap;
+
+        match self.attributes.entry(key) {
+            Vacant(_) => missing_attribute(key),
+            Occupied(mut entry) => {
+                // `with_value_from_user` requires ownership, so we need to
+                // temporarily pull the value out of the map. We don't want
+                // to use `remove`, because that would mess with the order.
+                let nil = unsafe { ffi::Qnil };
+                let mut tmp = Attribute::uninitialized(nil, nil);
+                swap(entry.get_mut(), &mut tmp);
+                tmp = tmp.with_value_from_user(value);
+                swap(entry.get_mut(), &mut tmp);
+            }
         }
     }
 

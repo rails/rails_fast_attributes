@@ -289,7 +289,7 @@ extern "C" fn forgetting_assignment(this: ffi::VALUE) -> ffi::VALUE {
 
 extern "C" fn with_value_from_user(this: ffi::VALUE, value: ffi::VALUE) -> ffi::VALUE {
     let this = unsafe { get_struct::<Attribute>(this) };
-    this.with_value_from_user(value).into_ruby()
+    this.clone().with_value_from_user(value).into_ruby()
 }
 
 extern "C" fn with_value_from_database(this: ffi::VALUE, value: ffi::VALUE) -> ffi::VALUE {

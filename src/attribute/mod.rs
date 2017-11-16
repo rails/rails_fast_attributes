@@ -164,12 +164,12 @@ impl Attribute {
         self.with_value_from_database(value_for_database)
     }
 
-    pub fn with_value_from_user(&self, value: ffi::VALUE) -> Self {
+    pub fn with_value_from_user(self, value: ffi::VALUE) -> Self {
         let ty = self.ty();
         unsafe {
             ffi::rb_funcall(ty, id!("assert_valid_value"), 1, value);
         }
-        Self::from_user(self.name(), value, ty, self.clone())
+        Self::from_user(self.name(), value, ty, self)
     }
 
     pub fn with_value_from_database(&self, value: ffi::VALUE) -> Self {
