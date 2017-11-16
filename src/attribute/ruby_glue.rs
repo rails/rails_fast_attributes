@@ -1,6 +1,6 @@
 use ffi;
 use into_ruby::*;
-use super::{Attribute, Source};
+use super::{Attribute, MaybeProc, Source};
 use util::*;
 
 impl IntoRuby for Attribute {
@@ -12,13 +12,13 @@ impl IntoRuby for Attribute {
         match *self {
             Attribute::Populated {
                 name,
-                raw_value,
+                ref raw_value,
                 ty,
                 ref source,
                 value,
             } => {
                 ffi::rb_gc_mark(name);
-                ffi::rb_gc_mark(raw_value);
+                raw_value.mark();
                 ffi::rb_gc_mark(ty);
                 if let Source::FromUser(ref orig) = *source {
                     orig.mark();
@@ -30,6 +30,22 @@ impl IntoRuby for Attribute {
             Attribute::Uninitialized { name, ty } => {
                 ffi::rb_gc_mark(name);
                 ffi::rb_gc_mark(ty);
+            }
+        }
+    }
+}
+
+impl MaybeProc {
+    unsafe fn mark(&self) {
+        use self::MaybeProc::*;
+
+        match *self {
+            NotProc(value) => ffi::rb_gc_mark(value),
+            Proc { block, ref memo } => {
+                ffi::rb_gc_mark(block);
+                if let Some(memo) = memo.get() {
+                    ffi::rb_gc_mark(memo);
+                }
             }
         }
     }
@@ -296,11 +312,11 @@ extern "C" fn dump_data(this: ffi::VALUE) -> ffi::VALUE {
     return match *this {
         Populated {
             name,
-            raw_value,
+            ref raw_value,
             ty,
             ref source,
             value: _value,
-        } => to_ruby_array(4, vec![name, ty, raw_value, dump_source(source)]),
+        } => to_ruby_array(4, vec![name, ty, raw_value.value(), dump_source(source)]),
         Uninitialized { name, ty } => to_ruby_array(2, vec![name, ty]),
     };
 
@@ -317,6 +333,7 @@ extern "C" fn dump_data(this: ffi::VALUE) -> ffi::VALUE {
 extern "C" fn load_data(this: ffi::VALUE, data: ffi::VALUE) -> ffi::VALUE {
     use self::Attribute::*;
     use self::Source::*;
+    use self::MaybeProc::*;
 
     fn error() -> ! {
         unsafe { ffi::rb_raise(ffi::rb_eRuntimeError, cstr!("Unrecognized attribute")) };
@@ -326,7 +343,7 @@ extern "C" fn load_data(this: ffi::VALUE, data: ffi::VALUE) -> ffi::VALUE {
         let this = get_struct::<Attribute>(this);
         let name = ffi::rb_ary_entry(data, 0);
         let ty = ffi::rb_ary_entry(data, 1);
-        let raw_value = ffi::rb_ary_entry(data, 2);
+        let raw_value = NotProc(ffi::rb_ary_entry(data, 2));
         let source = ffi::rb_ary_entry(data, 3);
 
         if ffi::RB_NIL_P(source) {

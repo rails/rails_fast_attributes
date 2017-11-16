@@ -1,3 +1,5 @@
+use std::cell::Cell;
+
 use ffi;
 
 mod ruby_glue;
@@ -6,7 +8,7 @@ mod ruby_glue;
 pub enum Attribute {
     Populated {
         name: ffi::VALUE,
-        raw_value: ffi::VALUE,
+        raw_value: MaybeProc,
         ty: ffi::VALUE,
         source: Source,
         value: Option<ffi::VALUE>,
@@ -28,11 +30,22 @@ pub enum Source {
     PreCast,
 }
 
+#[derive(Clone, Eq)]
+/// Represents either a Ruby value, or a block which needs to be called and
+/// memoized to get the Ruby value.
+pub enum MaybeProc {
+    NotProc(ffi::VALUE),
+    Proc {
+        block: ffi::VALUE,
+        memo: Cell<Option<ffi::VALUE>>,
+    },
+}
+
 impl Attribute {
     pub fn from_database(name: ffi::VALUE, raw_value: ffi::VALUE, ty: ffi::VALUE) -> Self {
         Attribute::Populated {
             name,
-            raw_value,
+            raw_value: MaybeProc::NotProc(raw_value),
             ty,
             source: Source::FromDatabase,
             value: None,
@@ -47,7 +60,7 @@ impl Attribute {
     ) -> Self {
         Attribute::Populated {
             name,
-            raw_value,
+            raw_value: MaybeProc::NotProc(raw_value),
             ty,
             source: Source::FromUser(Box::new(original_attribute)),
             value: None,
@@ -57,7 +70,7 @@ impl Attribute {
     fn from_cast_value(name: ffi::VALUE, value: ffi::VALUE, ty: ffi::VALUE) -> Self {
         Attribute::Populated {
             name,
-            raw_value: value,
+            raw_value: MaybeProc::NotProc(value),
             ty,
             source: Source::PreCast,
             value: Some(value),
@@ -69,8 +82,8 @@ impl Attribute {
     }
 
     pub fn value_before_type_cast(&self) -> ffi::VALUE {
-        if let Attribute::Populated { raw_value, .. } = *self {
-            raw_value
+        if let Attribute::Populated { ref raw_value, .. } = *self {
+            raw_value.value()
         } else {
             unsafe { ffi::Qnil }
         }
@@ -85,11 +98,11 @@ impl Attribute {
                     ref mut value,
                     ref source,
                     ty,
-                    raw_value,
+                    ref raw_value,
                     ..
                 } => {
                     if value.is_none() {
-                        *value = Some(cast_value(source, ty, raw_value));
+                        *value = Some(cast_value(source, ty, raw_value.value()));
                     }
                     value.unwrap()
                 }
@@ -160,12 +173,12 @@ impl Attribute {
             match *self {
                 Populated {
                     name,
-                    raw_value,
+                    ref raw_value,
                     ref source,
                     ..
                 } => Populated {
                     name,
-                    raw_value,
+                    raw_value: raw_value.clone(),
                     source: source.clone(),
                     ty,
                     value: None,
@@ -208,13 +221,13 @@ impl Attribute {
         *self = match *other {
             Populated {
                 name,
-                raw_value,
+                ref raw_value,
                 ty,
                 ref source,
                 value: Some(value),
             } => Populated {
                 name,
-                raw_value,
+                raw_value: raw_value.clone(),
                 ty,
                 source: source.clone(),
                 value: Some(unsafe { ffi::rb_obj_dup(value) }),
@@ -278,12 +291,12 @@ impl Attribute {
             Populated {
                 ref source,
                 ty,
-                raw_value,
+                ref raw_value,
                 ..
             } => match *source {
                 FromUser(ref orig) => orig.original_value(),
-                FromDatabase => cast_value(source, ty, raw_value),
-                PreCast => raw_value,
+                FromDatabase => cast_value(source, ty, raw_value.value()),
+                PreCast => raw_value.value(),
             },
             Uninitialized { .. } => unsafe { ffi::Qnil }, // FIXME: This is a marker object in Ruby
         }
@@ -299,9 +312,9 @@ impl Attribute {
             } => orig.original_value_for_database(),
             Populated {
                 source: FromDatabase,
-                raw_value,
+                ref raw_value,
                 ..
-            } => raw_value,
+            } => raw_value.value(),
             Populated {
                 source: PreCast, ..
             } => self.value_for_database(),
@@ -316,13 +329,13 @@ impl Attribute {
             Populated {
                 ref source,
                 name,
-                raw_value,
+                ref raw_value,
                 ty,
                 value: Some(value),
             } => Populated {
                 source: source.clone(),
                 name,
-                raw_value,
+                raw_value: raw_value.clone(),
                 ty,
                 value: Some(unsafe { ffi::rb_obj_dup(value) }),
             },
@@ -333,10 +346,6 @@ impl Attribute {
 
 impl PartialEq for Attribute {
     fn eq(&self, other: &Self) -> bool {
-        fn ruby_equals(lhs: ffi::VALUE, rhs: ffi::VALUE) -> bool {
-            unsafe { ffi::RTEST(ffi::rb_funcall(lhs, id!("=="), 1, rhs)) }
-        }
-
         use self::Attribute::*;
 
         match (self, other) {
@@ -344,19 +353,19 @@ impl PartialEq for Attribute {
                 &Populated {
                     ref source,
                     name,
-                    raw_value,
+                    ref raw_value,
                     ty,
                     ..
                 },
                 &Populated {
                     source: ref source2,
                     name: name2,
-                    raw_value: val2,
+                    raw_value: ref val2,
                     ty: ty2,
                     ..
                 },
             ) => {
-                source == source2 && ruby_equals(name, name2) && ruby_equals(raw_value, val2)
+                source == source2 && ruby_equals(name, name2) && raw_value == val2
                     && ruby_equals(ty, ty2)
             }
             (
@@ -368,6 +377,29 @@ impl PartialEq for Attribute {
             ) => ruby_equals(name, name2) && ruby_equals(ty, ty2),
             _ => false,
         }
+    }
+}
+
+impl MaybeProc {
+    fn value(&self) -> ffi::VALUE {
+        use self::MaybeProc::*;
+
+        match *self {
+            NotProc(value) => value,
+            Proc { block, ref memo } => {
+                if memo.get().is_none() {
+                    let value = unsafe { ffi::rb_funcall(block, id!("call"), 0) };
+                    memo.set(Some(value));
+                }
+                memo.get().unwrap()
+            }
+        }
+    }
+}
+
+impl PartialEq for MaybeProc {
+    fn eq(&self, other: &Self) -> bool {
+        ruby_equals(self.value(), other.value())
     }
 }
 
@@ -384,4 +416,8 @@ fn cast_value(source: &Source, ty: ffi::VALUE, raw_value: ffi::VALUE) -> ffi::VA
             PreCast => raw_value,
         }
     }
+}
+
+fn ruby_equals(lhs: ffi::VALUE, rhs: ffi::VALUE) -> bool {
+    unsafe { ffi::RTEST(ffi::rb_funcall(lhs, id!("=="), 1, rhs)) }
 }
