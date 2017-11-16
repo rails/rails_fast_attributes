@@ -28,6 +28,7 @@ pub enum Source {
     FromUser(Box<Attribute>),
     FromDatabase,
     PreCast,
+    UserProvidedDefault(Option<Box<Attribute>>),
 }
 
 #[derive(Clone, Eq)]
@@ -79,6 +80,21 @@ impl Attribute {
 
     pub fn uninitialized(name: ffi::VALUE, ty: ffi::VALUE) -> Self {
         Attribute::Uninitialized { name, ty }
+    }
+
+    pub fn user_provided_default(
+        name: ffi::VALUE,
+        raw_value: MaybeProc,
+        ty: ffi::VALUE,
+        original_attribute: Option<Attribute>,
+    ) -> Self {
+        Attribute::Populated {
+            name,
+            raw_value,
+            ty,
+            source: Source::UserProvidedDefault(original_attribute.map(Box::new)),
+            value: None,
+        }
     }
 
     pub fn value_before_type_cast(&self) -> ffi::VALUE {
@@ -273,14 +289,15 @@ impl Attribute {
     }
 
     fn has_been_assigned(&self) -> bool {
-        if let Attribute::Populated {
-            source: Source::FromUser(_),
-            ..
-        } = *self
-        {
-            true
-        } else {
-            false
+        use self::Attribute::*;
+        use self::Source::*;
+
+        match *self {
+            Populated { ref source, .. } => match *source {
+                FromUser(_) | UserProvidedDefault(Some(_)) => true,
+                _ => false,
+            },
+            _ => false,
         }
     }
 
@@ -295,8 +312,11 @@ impl Attribute {
                 ..
             } => match *source {
                 FromUser(ref orig) => orig.original_value(),
-                FromDatabase => cast_value(source, ty, raw_value.value()),
+                FromDatabase | UserProvidedDefault(None) => {
+                    cast_value(source, ty, raw_value.value())
+                }
                 PreCast => raw_value.value(),
+                UserProvidedDefault(Some(ref orig)) => orig.original_value(),
             },
             Uninitialized { .. } => unsafe { ffi::Qnil }, // FIXME: This is a marker object in Ruby
         }
@@ -318,6 +338,18 @@ impl Attribute {
             Populated {
                 source: PreCast, ..
             } => self.value_for_database(),
+            Populated {
+                source: UserProvidedDefault(Some(ref mut orig)),
+                ..
+            } => orig.original_value_for_database(),
+            Populated {
+                source: UserProvidedDefault(None),
+                ty,
+                ..
+            } => {
+                let value = self.original_value();
+                unsafe { ffi::rb_funcall(ty, id!("serialize"), 1, value) }
+            }
             Uninitialized { .. } => unsafe { ffi::Qnil },
         }
     }
@@ -341,6 +373,14 @@ impl Attribute {
             },
             _ => self.clone(),
         }
+    }
+
+    pub fn without_cast_value(&self) -> Self {
+        let mut result = self.clone();
+        if let Attribute::Populated { ref mut value, .. } = result {
+            *value = None;
+        }
+        result
     }
 }
 
@@ -412,7 +452,7 @@ fn cast_value(source: &Source, ty: ffi::VALUE, raw_value: ffi::VALUE) -> ffi::VA
     unsafe {
         match *source {
             FromDatabase => ffi::rb_funcall(ty, id!("deserialize"), 1, raw_value),
-            FromUser(_) => ffi::rb_funcall(ty, id!("cast"), 1, raw_value),
+            FromUser(_) | UserProvidedDefault(_) => ffi::rb_funcall(ty, id!("cast"), 1, raw_value),
             PreCast => raw_value,
         }
     }

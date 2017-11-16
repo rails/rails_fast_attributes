@@ -116,7 +116,7 @@ extern "C" fn push_attribute(
     let id = string_or_symbol_to_id(key);
     let attr = unsafe { get_struct::<Attribute>(value) };
 
-    hash.insert(id, attr.clone());
+    hash.insert(id, attr.without_cast_value());
 
     ffi::st_retval::ST_CONTINUE
 }

@@ -77,6 +77,12 @@ pub unsafe fn init() {
         uninitialized as *const _,
         2,
     );
+    ffi::rb_define_singleton_method(
+        attribute,
+        cstr!("user_provided_default"),
+        user_provided_default as *const _,
+        4,
+    );
 
     ffi::rb_define_method(
         attribute,
@@ -203,6 +209,35 @@ extern "C" fn uninitialized(_class: ffi::VALUE, name: ffi::VALUE, ty: ffi::VALUE
     Attribute::uninitialized(name, ty).into_ruby()
 }
 
+extern "C" fn user_provided_default(
+    _class: ffi::VALUE,
+    name: ffi::VALUE,
+    value: ffi::VALUE,
+    ty: ffi::VALUE,
+    original_attribute: ffi::VALUE,
+) -> ffi::VALUE {
+    let proc_c = unsafe { ffi::rb_const_get(ffi::rb_cObject, id!("Proc")) };
+    let value = unsafe {
+        if ffi::RTEST(ffi::rb_funcall(value, id!("is_a?"), 1, proc_c)) {
+            MaybeProc::Proc {
+                block: value,
+                memo: Default::default(),
+            }
+        } else {
+            MaybeProc::NotProc(value)
+        }
+    };
+
+    let original_attribute = unsafe {
+        if ffi::RB_NIL_P(original_attribute) {
+            None
+        } else {
+            Some(get_struct::<Attribute>(original_attribute).clone())
+        }
+    };
+    Attribute::user_provided_default(name, value, ty, original_attribute).into_ruby()
+}
+
 extern "C" fn value_before_type_cast(this: ffi::VALUE) -> ffi::VALUE {
     let this = unsafe { get_struct::<Attribute>(this) };
     this.value_before_type_cast()
@@ -322,11 +357,18 @@ extern "C" fn dump_data(this: ffi::VALUE) -> ffi::VALUE {
 
     fn dump_source(source: &'static Source) -> ffi::VALUE {
         use self::Source::*;
-        match *source {
-            FromUser(ref orig) => orig.as_ruby(),
-            FromDatabase => unsafe { ffi::I322NUM(2) },
-            PreCast => unsafe { ffi::I322NUM(3) },
-        }
+        let discriminant = match *source {
+            FromUser(_) => 1,
+            FromDatabase => 2,
+            PreCast => 3,
+            UserProvidedDefault(_) => 4,
+        };
+        let original_attr = match *source {
+            FromUser(ref orig) | UserProvidedDefault(Some(ref orig)) => orig.as_ruby(),
+            _ => unsafe { ffi::Qnil },
+        };
+        let discriminant = unsafe { ffi::I322NUM(discriminant) };
+        to_ruby_array(2, vec![discriminant, original_attr])
     }
 }
 
@@ -348,20 +390,19 @@ extern "C" fn load_data(this: ffi::VALUE, data: ffi::VALUE) -> ffi::VALUE {
 
         if ffi::RB_NIL_P(source) {
             *this = Uninitialized { name, ty };
-        } else if ffi::RB_TYPE_P(source, ffi::T_DATA) {
-            let attr = get_struct::<Attribute>(source).clone();
-            let source = FromUser(Box::new(attr));
-            *this = Populated {
-                name,
-                ty,
-                raw_value,
-                source,
-                value: None,
+        } else {
+            let discriminant = ffi::rb_ary_entry(source, 0);
+            let attr = ffi::rb_ary_entry(source, 1);
+            let attr = if ffi::RB_NIL_P(attr) {
+                None
+            } else {
+                Some(Box::new(get_struct::<Attribute>(attr).clone()))
             };
-        } else if ffi::RB_TYPE_P(source, ffi::T_FIXNUM) {
-            let source = match ffi::NUM2I32(source) {
+            let source = match ffi::NUM2I32(discriminant) {
+                1 => FromUser(attr.unwrap()),
                 2 => FromDatabase,
                 3 => PreCast,
+                4 => UserProvidedDefault(attr),
                 _ => error(),
             };
             *this = Populated {
@@ -371,8 +412,6 @@ extern "C" fn load_data(this: ffi::VALUE, data: ffi::VALUE) -> ffi::VALUE {
                 source,
                 value: None,
             };
-        } else {
-            error();
         }
 
         ffi::Qnil
