@@ -100,6 +100,12 @@ impl AttributeSet {
         Self::new(attributes)
     }
 
+    fn reset(&mut self, key: ffi::ID) {
+        if self.has_key(key) {
+            self.write_from_database(key, unsafe { ffi::Qnil });
+        }
+    }
+
     fn accessed(&self) -> ffi::VALUE {
         let keys = self.attributes
             .values()

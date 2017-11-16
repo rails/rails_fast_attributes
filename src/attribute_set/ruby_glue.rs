@@ -64,6 +64,7 @@ pub unsafe fn init() {
         2,
     );
     ffi::rb_define_method(attribute_set, cstr!("deep_dup"), deep_dup as *const _, 0);
+    ffi::rb_define_method(attribute_set, cstr!("reset"), reset as *const _, 1);
     ffi::rb_define_method(
         attribute_set,
         cstr!("initialize_copy"),
@@ -150,6 +151,13 @@ extern "C" fn write_cast_value(this: ffi::VALUE, key: ffi::VALUE, value: ffi::VA
 extern "C" fn deep_dup(this_ptr: ffi::VALUE) -> ffi::VALUE {
     let this = unsafe { get_struct::<AttributeSet>(this_ptr) };
     this.deep_dup().into_ruby()
+}
+
+extern "C" fn reset(this: ffi::VALUE, key: ffi::VALUE) -> ffi::VALUE {
+    let this = unsafe { get_struct::<AttributeSet>(this) };
+    let key = string_or_symbol_to_id(key);
+    this.reset(key);
+    unsafe { ffi::Qnil }
 }
 
 extern "C" fn initialize_copy(this_ptr: ffi::VALUE, other: ffi::VALUE) -> ffi::VALUE {
