@@ -180,8 +180,10 @@ extern "C" fn deep_dup(this_ptr: ffi::VALUE) -> ffi::VALUE {
 
 extern "C" fn reset(this: ffi::VALUE, key: ffi::VALUE) -> ffi::VALUE {
     let this = unsafe { get_struct::<AttributeSet>(this) };
-    let key = string_or_symbol_to_id(key);
-    this.reset(key);
+    if unsafe { !ffi::RB_NIL_P(key) } {
+        let key = string_or_symbol_to_id(key);
+        this.reset(key);
+    }
     unsafe { ffi::Qnil }
 }
 
