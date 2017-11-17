@@ -168,6 +168,8 @@ pub unsafe fn init() {
     );
     ffi::rb_define_method(attribute, cstr!("_dump_data"), dump_data as *const _, 0);
     ffi::rb_define_method(attribute, cstr!("_load_data"), load_data as *const _, 1);
+    ffi::rb_define_method(attribute, cstr!("encode_with"), encode_with as *const _, 1);
+    ffi::rb_define_method(attribute, cstr!("init_with"), init_with as *const _, 1);
 }
 
 fn from_value(value: ffi::VALUE) -> Attribute {
@@ -358,32 +360,11 @@ extern "C" fn dump_data(this: ffi::VALUE) -> ffi::VALUE {
         } => to_ruby_array(4, vec![name, ty, raw_value.value(), dump_source(source)]),
         Uninitialized { name, ty } => to_ruby_array(2, vec![name, ty]),
     };
-
-    fn dump_source(source: &'static Source) -> ffi::VALUE {
-        use self::Source::*;
-        let discriminant = match *source {
-            FromUser(_) => 1,
-            FromDatabase => 2,
-            PreCast => 3,
-            UserProvidedDefault(_) => 4,
-        };
-        let original_attr = match *source {
-            FromUser(ref orig) | UserProvidedDefault(Some(ref orig)) => orig.as_ruby(),
-            _ => unsafe { ffi::Qnil },
-        };
-        let discriminant = unsafe { ffi::I322NUM(discriminant) };
-        to_ruby_array(2, vec![discriminant, original_attr])
-    }
 }
 
 extern "C" fn load_data(this: ffi::VALUE, data: ffi::VALUE) -> ffi::VALUE {
     use self::Attribute::*;
-    use self::Source::*;
     use self::MaybeProc::*;
-
-    fn error() -> ! {
-        unsafe { ffi::rb_raise(ffi::rb_eRuntimeError, cstr!("Unrecognized attribute")) };
-    }
 
     unsafe {
         let this = get_struct::<Attribute>(this);
@@ -395,20 +376,7 @@ extern "C" fn load_data(this: ffi::VALUE, data: ffi::VALUE) -> ffi::VALUE {
         if ffi::RB_NIL_P(source) {
             *this = Uninitialized { name, ty };
         } else {
-            let discriminant = ffi::rb_ary_entry(source, 0);
-            let attr = ffi::rb_ary_entry(source, 1);
-            let attr = if ffi::RB_NIL_P(attr) {
-                None
-            } else {
-                Some(Box::new(get_struct::<Attribute>(attr).clone()))
-            };
-            let source = match ffi::NUM2I32(discriminant) {
-                1 => FromUser(attr.unwrap()),
-                2 => FromDatabase,
-                3 => PreCast,
-                4 => UserProvidedDefault(attr),
-                _ => error(),
-            };
+            let source = load_source(source);
             *this = Populated {
                 name,
                 ty,
@@ -419,5 +387,120 @@ extern "C" fn load_data(this: ffi::VALUE, data: ffi::VALUE) -> ffi::VALUE {
         }
 
         ffi::Qnil
+    }
+}
+
+extern "C" fn encode_with(this: ffi::VALUE, coder: ffi::VALUE) -> ffi::VALUE {
+    use self::Attribute::*;
+
+    unsafe {
+        let this = get_struct::<Attribute>(this);
+        let value_before_type_cast = this.value_before_type_cast();
+        let ty = this.ty();
+
+        ffi::rb_funcall(coder, id!("[]="), 2, rstr!("name"), this.name());
+
+        if !ffi::RB_NIL_P(ty) {
+            ffi::rb_funcall(coder, id!("[]="), 2, rstr!("type"), ty);
+        }
+
+        if !ffi::RB_NIL_P(value_before_type_cast) {
+            ffi::rb_funcall(coder, id!("[]="), 2, rstr!("raw_value"), value_before_type_cast);
+        }
+
+        match *this {
+            Populated {
+                name: _name,
+                raw_value: ref _raw_value,
+                ty: _ty,
+                ref source,
+                value,
+            } => {
+                let source = dump_source(source);
+                ffi::rb_funcall(coder, id!("[]="), 2, rstr!("source"), source);
+                if let Some(value) = value {
+                    ffi::rb_funcall(coder, id!("[]="), 2, rstr!("value"), value);
+                }
+            },
+            Uninitialized { .. } => {} // noop
+        }
+
+        ffi::Qnil
+    }
+}
+
+extern "C" fn init_with(this: ffi::VALUE, coder: ffi::VALUE) -> ffi::VALUE {
+    use self::Attribute::*;
+
+    unsafe {
+        let this = get_struct::<Attribute>(this);
+
+        let name = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("name"));
+        let ty = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("type"));
+        let raw_value = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("raw_value"));
+        let source = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("source"));
+        let value = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("value"));
+
+        if ffi::RB_NIL_P(source) {
+            *this = Uninitialized { name, ty };
+        } else {
+            let value = if ffi::RB_NIL_P(value) {
+                None
+            } else {
+                Some(value)
+            };
+            let source = load_source(source);
+
+            *this = Populated {
+                name,
+                ty,
+                raw_value: MaybeProc::NotProc(raw_value),
+                source,
+                value,
+            };
+        }
+
+        ffi::Qnil
+    }
+}
+
+fn dump_source(source: &'static Source) -> ffi::VALUE {
+    use self::Source::*;
+    let discriminant = match *source {
+        FromUser(_) => 1,
+        FromDatabase => 2,
+        PreCast => 3,
+        UserProvidedDefault(_) => 4,
+    };
+    let original_attr = match *source {
+        FromUser(ref orig) | UserProvidedDefault(Some(ref orig)) => orig.as_ruby(),
+        _ => unsafe { ffi::Qnil },
+    };
+    let discriminant = unsafe { ffi::I322NUM(discriminant) };
+    to_ruby_array(2, vec![discriminant, original_attr])
+}
+
+fn load_source(source: ffi::VALUE) -> Source {
+    use self::Source::*;
+
+    fn error() -> ! {
+        unsafe { ffi::rb_raise(ffi::rb_eRuntimeError, cstr!("Unrecognized attribute")) };
+    }
+
+    unsafe {
+        let discriminant = ffi::rb_ary_entry(source, 0);
+        let attr = ffi::rb_ary_entry(source, 1);
+        let attr = if ffi::RB_NIL_P(attr) {
+            None
+        } else {
+            Some(Box::new(get_struct::<Attribute>(attr).clone()))
+        };
+        match ffi::NUM2I32(discriminant) {
+            1 => FromUser(attr.unwrap()),
+            2 => FromDatabase,
+            3 => PreCast,
+            4 => UserProvidedDefault(attr),
+            _ => error(),
+        }
     }
 }

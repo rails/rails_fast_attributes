@@ -14,10 +14,19 @@ macro_rules! cstr {
 macro_rules! id {
     ($s:expr) => {{
         lazy_static! {
-            static ref MID: ::ffi::ID = unsafe { ffi::rb_intern(cstr!($s)) };
+            static ref MID: ::ffi::ID = unsafe { ::ffi::rb_intern(cstr!($s)) };
         }
         *MID
     }}
+}
+
+macro_rules! rstr {
+    ($s:expr) => {
+        #[allow(unused_unsafe)]
+        unsafe {
+            ::ffi::rb_utf8_str_new($s.as_ptr() as *const ::libc::c_char, $s.len() as ::libc::c_long)
+        }
+    }
 }
 
 pub mod attribute;

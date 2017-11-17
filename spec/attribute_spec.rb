@@ -1,3 +1,5 @@
+require "yaml"
+
 module ActiveRecord
   RSpec.describe Attribute do
     let(:type) { Type::Value.new }
@@ -255,6 +257,13 @@ module ActiveRecord
 
       expect(from_user.came_from_user?).to be
       expect(from_database.came_from_user?).not_to be
+    end
+
+    it "can be yaml encoded" do
+      type = Type::Value.new
+      attr = Attribute.from_database(:foo, 1, type).with_value_from_user(2)
+
+      expect(attr).to eq(YAML.load(YAML.dump(attr)))
     end
 
     def attribute_from_user(name, value, type)
