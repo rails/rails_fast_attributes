@@ -394,7 +394,7 @@ extern "C" fn hash(this: ffi::VALUE) -> ffi::VALUE {
 }
 
 extern "C" fn initialize_dup(this: ffi::VALUE, other: ffi::VALUE) -> ffi::VALUE {
-    let this = unsafe { get_struct::<Attribute>(this) };
+    let this = unsafe { get_struct_mut::<Attribute>(this) };
     let other = unsafe { get_struct::<Attribute>(other) };
     this.initialize_dup(other);
     unsafe { ffi::Qnil }
@@ -421,7 +421,7 @@ extern "C" fn load_data(this: ffi::VALUE, data: ffi::VALUE) -> ffi::VALUE {
     use self::MaybeProc::*;
 
     unsafe {
-        let this = get_struct::<Attribute>(this);
+        let this = get_struct_mut::<Attribute>(this);
         let name = ffi::rb_ary_entry(data, 0);
         let ty = ffi::rb_ary_entry(data, 1);
         let raw_value = NotProc(ffi::rb_ary_entry(data, 2));
@@ -493,7 +493,7 @@ extern "C" fn init_with(this: ffi::VALUE, coder: ffi::VALUE) -> ffi::VALUE {
     use self::Attribute::*;
 
     unsafe {
-        let this = get_struct::<Attribute>(this);
+        let this = get_struct_mut::<Attribute>(this);
 
         let name = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("name"));
         let ty = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("type"));
@@ -530,7 +530,7 @@ extern "C" fn init_with_from_database(this: ffi::VALUE, coder: ffi::VALUE) -> ff
             return init_with(this, coder);
         }
 
-        let this = get_struct::<Attribute>(this);
+        let this = get_struct_mut::<Attribute>(this);
         let name = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("name"));
         let ty = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("type"));
         let raw_value = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("value_before_type_cast"));
@@ -560,7 +560,7 @@ extern "C" fn init_with_from_user(this: ffi::VALUE, coder: ffi::VALUE) -> ffi::V
             return init_with(this, coder);
         }
 
-        let this = get_struct::<Attribute>(this);
+        let this = get_struct_mut::<Attribute>(this);
         let name = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("name"));
         let ty = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("type"));
         let raw_value = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("value_before_type_cast"));

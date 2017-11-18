@@ -50,7 +50,7 @@ extern "C" fn initialize(
             Some(default_attributes)
         };
 
-        let this = get_struct::<Builder>(this);
+        let this = get_struct_mut::<Builder>(this);
         this.initialize(types, default_attributes);
     }
     this

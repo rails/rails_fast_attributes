@@ -119,8 +119,7 @@ extern "C" fn get(this: ffi::VALUE, name: ffi::VALUE) -> ffi::VALUE {
 }
 
 extern "C" fn set(this: ffi::VALUE, key: ffi::VALUE, value: ffi::VALUE) -> ffi::VALUE {
-    ensure_not_frozen(this);
-    let this = unsafe { get_struct::<AttributeSet>(this) };
+    let this = unsafe { get_struct_mut::<AttributeSet>(this) };
     let attr = unsafe { get_struct::<Attribute>(value) };
     let key = string_or_symbol_to_id(key);
     this.set(key, attr.clone());
@@ -159,24 +158,21 @@ extern "C" fn write_from_database(
     key: ffi::VALUE,
     value: ffi::VALUE,
 ) -> ffi::VALUE {
-    ensure_not_frozen(this);
-    let this = unsafe { get_struct::<AttributeSet>(this) };
+    let this = unsafe { get_struct_mut::<AttributeSet>(this) };
     let key = string_or_symbol_to_id(key);
     this.write_from_database(key, value);
     unsafe { ffi::Qnil }
 }
 
 extern "C" fn write_from_user(this: ffi::VALUE, key: ffi::VALUE, value: ffi::VALUE) -> ffi::VALUE {
-    ensure_not_frozen(this);
-    let this = unsafe { get_struct::<AttributeSet>(this) };
+    let this = unsafe { get_struct_mut::<AttributeSet>(this) };
     let key = string_or_symbol_to_id(key);
     this.write_from_user(key, value);
     unsafe { ffi::Qnil }
 }
 
 extern "C" fn write_cast_value(this: ffi::VALUE, key: ffi::VALUE, value: ffi::VALUE) -> ffi::VALUE {
-    ensure_not_frozen(this);
-    let this = unsafe { get_struct::<AttributeSet>(this) };
+    let this = unsafe { get_struct_mut::<AttributeSet>(this) };
     let key = string_or_symbol_to_id(key);
     this.write_cast_value(key, value);
     unsafe { ffi::Qnil }
@@ -188,8 +184,7 @@ extern "C" fn deep_dup(this_ptr: ffi::VALUE) -> ffi::VALUE {
 }
 
 extern "C" fn reset(this: ffi::VALUE, key: ffi::VALUE) -> ffi::VALUE {
-    ensure_not_frozen(this);
-    let this = unsafe { get_struct::<AttributeSet>(this) };
+    let this = unsafe { get_struct_mut::<AttributeSet>(this) };
     if unsafe { !ffi::RB_NIL_P(key) } {
         let key = string_or_symbol_to_id(key);
         this.reset(key);
@@ -198,7 +193,7 @@ extern "C" fn reset(this: ffi::VALUE, key: ffi::VALUE) -> ffi::VALUE {
 }
 
 extern "C" fn initialize_copy(this_ptr: ffi::VALUE, other: ffi::VALUE) -> ffi::VALUE {
-    let this = unsafe { get_struct::<AttributeSet>(this_ptr) };
+    let this = unsafe { get_struct_mut::<AttributeSet>(this_ptr) };
     let other = unsafe { get_struct::<AttributeSet>(other) };
     this.clone_from(other);
     this_ptr
@@ -243,7 +238,7 @@ extern "C" fn dump_data(this: ffi::VALUE) -> ffi::VALUE {
 extern "C" fn load_data(this: ffi::VALUE, data: ffi::VALUE) -> ffi::VALUE {
     use std::slice;
     unsafe {
-        let this = get_struct::<AttributeSet>(this);
+        let this = get_struct_mut::<AttributeSet>(this);
         let attrs =
             slice::from_raw_parts(ffi::RARRAY_CONST_PTR(data), ffi::RARRAY_LEN(data) as usize);
         this.attributes = attrs
@@ -268,13 +263,5 @@ extern "C" fn except(argc: libc::c_int, argv: *const ffi::VALUE, this: ffi::VALU
         }
 
         ffi::rb_funcallv(result, id!("except"), argc, argv)
-    }
-}
-
-fn ensure_not_frozen(this: ffi::VALUE) {
-    unsafe {
-        if ffi::OBJ_FROZEN(this) {
-            ffi::rb_raise(ffi::rb_eRuntimeError, cstr!("Can't modify frozen hash"));
-        }
     }
 }
