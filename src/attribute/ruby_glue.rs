@@ -405,7 +405,13 @@ extern "C" fn encode_with(this: ffi::VALUE, coder: ffi::VALUE) -> ffi::VALUE {
         }
 
         if !ffi::RB_NIL_P(value_before_type_cast) {
-            ffi::rb_funcall(coder, id!("[]="), 2, rstr!("raw_value"), value_before_type_cast);
+            ffi::rb_funcall(
+                coder,
+                id!("[]="),
+                2,
+                rstr!("raw_value"),
+                value_before_type_cast,
+            );
         }
 
         match *this {
@@ -421,7 +427,7 @@ extern "C" fn encode_with(this: ffi::VALUE, coder: ffi::VALUE) -> ffi::VALUE {
                 if let Some(value) = value {
                     ffi::rb_funcall(coder, id!("[]="), 2, rstr!("value"), value);
                 }
-            },
+            }
             Uninitialized { .. } => {} // noop
         }
 

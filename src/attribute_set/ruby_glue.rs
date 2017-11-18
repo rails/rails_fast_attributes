@@ -28,7 +28,12 @@ pub unsafe fn init() {
     ffi::rb_define_alloc_func(attribute_set, Some(AttributeSet::allocate));
 
     ffi::rb_define_method(attribute_set, cstr!("fetch"), fetch as *const _, 1);
-    ffi::rb_define_method(attribute_set, cstr!("each_value"), each_value as *const _, 0);
+    ffi::rb_define_method(
+        attribute_set,
+        cstr!("each_value"),
+        each_value as *const _,
+        0,
+    );
     ffi::rb_define_method(attribute_set, cstr!("[]"), get as *const _, 1);
     ffi::rb_define_method(attribute_set, cstr!("[]="), set as *const _, 2);
     ffi::rb_define_method(
