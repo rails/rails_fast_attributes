@@ -1,4 +1,4 @@
-module ActiveRecord
+module ActiveModel
   RSpec.describe AttributeSet do
     specify "building a new set from raw attributes" do
       builder = AttributeSet::Builder.new(foo: Type::Integer.new, bar: Type::Float.new)

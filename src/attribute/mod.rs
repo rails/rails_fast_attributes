@@ -208,10 +208,19 @@ impl Attribute {
     pub fn came_from_user(&self) -> bool {
         if let Attribute::Populated {
             source: Source::FromUser(_),
+            ref raw_value,
+            ty,
             ..
         } = *self
         {
-            true
+            unsafe {
+                !ffi::RTEST(ffi::rb_funcall(
+                    ty,
+                    id!("value_constructed_by_mass_assignment?"),
+                    1,
+                    raw_value.value(),
+                ))
+            }
         } else {
             false
         }

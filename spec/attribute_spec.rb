@@ -1,6 +1,6 @@
 require "yaml"
 
-module ActiveRecord
+module ActiveModel
   RSpec.describe Attribute do
     let(:type) { Type::Value.new }
 
@@ -252,8 +252,8 @@ module ActiveRecord
     end
 
     specify "#came_from_user?" do
-      from_user = attribute_from_user(:foo, nil, nil)
-      from_database = Attribute.from_database(:foo, nil, nil)
+      from_user = attribute_from_user(:foo, nil, Type::Value.new)
+      from_database = Attribute.from_database(:foo, nil, Type::Value.new)
 
       expect(from_user.came_from_user?).to be
       expect(from_database.came_from_user?).not_to be
