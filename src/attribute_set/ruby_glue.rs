@@ -119,6 +119,7 @@ extern "C" fn get(this: ffi::VALUE, name: ffi::VALUE) -> ffi::VALUE {
 }
 
 extern "C" fn set(this: ffi::VALUE, key: ffi::VALUE, value: ffi::VALUE) -> ffi::VALUE {
+    ensure_not_frozen(this);
     let this = unsafe { get_struct::<AttributeSet>(this) };
     let attr = unsafe { get_struct::<Attribute>(value) };
     let key = string_or_symbol_to_id(key);
@@ -158,6 +159,7 @@ extern "C" fn write_from_database(
     key: ffi::VALUE,
     value: ffi::VALUE,
 ) -> ffi::VALUE {
+    ensure_not_frozen(this);
     let this = unsafe { get_struct::<AttributeSet>(this) };
     let key = string_or_symbol_to_id(key);
     this.write_from_database(key, value);
@@ -165,6 +167,7 @@ extern "C" fn write_from_database(
 }
 
 extern "C" fn write_from_user(this: ffi::VALUE, key: ffi::VALUE, value: ffi::VALUE) -> ffi::VALUE {
+    ensure_not_frozen(this);
     let this = unsafe { get_struct::<AttributeSet>(this) };
     let key = string_or_symbol_to_id(key);
     this.write_from_user(key, value);
@@ -172,6 +175,7 @@ extern "C" fn write_from_user(this: ffi::VALUE, key: ffi::VALUE, value: ffi::VAL
 }
 
 extern "C" fn write_cast_value(this: ffi::VALUE, key: ffi::VALUE, value: ffi::VALUE) -> ffi::VALUE {
+    ensure_not_frozen(this);
     let this = unsafe { get_struct::<AttributeSet>(this) };
     let key = string_or_symbol_to_id(key);
     this.write_cast_value(key, value);
@@ -184,6 +188,7 @@ extern "C" fn deep_dup(this_ptr: ffi::VALUE) -> ffi::VALUE {
 }
 
 extern "C" fn reset(this: ffi::VALUE, key: ffi::VALUE) -> ffi::VALUE {
+    ensure_not_frozen(this);
     let this = unsafe { get_struct::<AttributeSet>(this) };
     if unsafe { !ffi::RB_NIL_P(key) } {
         let key = string_or_symbol_to_id(key);
@@ -263,5 +268,13 @@ extern "C" fn except(argc: libc::c_int, argv: *const ffi::VALUE, this: ffi::VALU
         }
 
         ffi::rb_funcallv(result, id!("except"), argc, argv)
+    }
+}
+
+fn ensure_not_frozen(this: ffi::VALUE) {
+    unsafe {
+        if ffi::OBJ_FROZEN(this) {
+            ffi::rb_raise(ffi::rb_eRuntimeError, cstr!("Can't modify frozen hash"));
+        }
     }
 }

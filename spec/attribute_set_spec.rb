@@ -287,5 +287,16 @@ module ActiveRecord
       }.to raise_error(ActiveModel::MissingAttributeError)
         .with_message("can't write unknown attribute `bar`")
     end
+
+    specify "modifying frozen attribute set raises" do
+      builder = AttributeSet::Builder.new(foo: Type::Value.new)
+      attributes = builder.build_from_database(foo: nil)
+      attributes.freeze
+
+      expect { attributes.write_from_user(:foo, 1) }.to raise_error(RuntimeError)
+      expect { attributes.write_from_database(:foo, 1) }.to raise_error(RuntimeError)
+      expect { attributes.write_cast_value(:foo, 1) }.to raise_error(RuntimeError)
+      expect { attributes.reset(:foo) }.to raise_error(RuntimeError)
+    end
   end
 end
