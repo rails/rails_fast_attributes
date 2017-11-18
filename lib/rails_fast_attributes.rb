@@ -3,6 +3,7 @@ require "rails_fast_attributes/native"
 require "rails_fast_attributes/version"
 require "active_model"
 require "active_model/attribute"
+require "active_model/attribute_set"
 require "active_model/attribute/user_provided_default"
 require "active_record"
 require "active_record/relation"
@@ -28,9 +29,14 @@ module RailsFastAttributes
       end
     end
   end
+
+  class AttributeSet
+    Builder = RailsFastAttributes::Builder
+    YAMLEncoder = ActiveModel::AttributeSet::YAMLEncoder
+  end
 end
 
 ActiveModel.send(:remove_const, :Attribute)
 ActiveModel::Attribute = RailsFastAttributes::Attribute
-ActiveModel::AttributeSet.send(:remove_const, :Builder)
-ActiveModel::AttributeSet::Builder = RailsFastAttributes::Builder
+ActiveModel.send(:remove_const, :AttributeSet)
+ActiveModel::AttributeSet = RailsFastAttributes::AttributeSet

@@ -1,3 +1,5 @@
+use ordermap::OrderMap;
+
 use attribute::Attribute;
 use {ffi, libc};
 use into_ruby::{Allocate, IntoRuby};
@@ -27,6 +29,7 @@ pub unsafe fn init() {
 
     ffi::rb_define_alloc_func(attribute_set, Some(AttributeSet::allocate));
 
+    ffi::rb_define_method(attribute_set, cstr!("initialize"), initialize as *const _, 1);
     ffi::rb_define_method(attribute_set, cstr!("fetch"), fetch as *const _, 1);
     ffi::rb_define_method(
         attribute_set,
@@ -83,7 +86,38 @@ pub unsafe fn init() {
     ffi::rb_define_method(attribute_set, cstr!("=="), equals as *const _, 1);
     ffi::rb_define_method(attribute_set, cstr!("_dump_data"), dump_data as *const _, 0);
     ffi::rb_define_method(attribute_set, cstr!("_load_data"), load_data as *const _, 1);
+    ffi::rb_define_method(attribute_set, cstr!("init_with"), init_with as *const _, 1);
     ffi::rb_define_method(attribute_set, cstr!("except"), except as *const _, -1);
+}
+
+extern "C" fn initialize(this: ffi::VALUE, attrs: ffi::VALUE) -> ffi::VALUE {
+    unsafe {
+        let this = get_struct_mut::<AttributeSet>(this);
+        this.attributes.reserve(ffi::RHASH_SIZE(attrs) as usize);
+        ffi::rb_hash_foreach(
+            attrs,
+            Some(push_attribute),
+            &mut this.attributes as *mut _ as *mut _,
+        );
+
+        extern "C" fn push_attribute(
+            key: ffi::VALUE,
+            value: ffi::VALUE,
+            hash_ptr: *mut libc::c_void,
+        ) -> ffi::st_retval {
+            let hash_ptr = hash_ptr as *mut OrderMap<ffi::ID, Attribute>;
+            let hash = unsafe { hash_ptr.as_mut().unwrap() };
+
+            let id = string_or_symbol_to_id(key);
+            let value = unsafe { get_struct::<Attribute>(value) }.clone();
+
+            hash.insert(id, value);
+
+            ffi::st_retval::ST_CONTINUE
+        }
+
+        ffi::Qnil
+    }
 }
 
 extern "C" fn fetch(this: ffi::VALUE, name: ffi::VALUE) -> ffi::VALUE {
@@ -249,6 +283,20 @@ extern "C" fn load_data(this: ffi::VALUE, data: ffi::VALUE) -> ffi::VALUE {
                 (key, attr.clone())
             })
             .collect();
+        ffi::Qnil
+    }
+}
+
+extern "C" fn init_with(this: ffi::VALUE, coder: ffi::VALUE) -> ffi::VALUE {
+    unsafe {
+        let attributes = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("attributes"));
+        let hash = ffi::rb_const_get(ffi::rb_cObject, id!("Hash"));
+        let attributes = if ffi::RTEST(ffi::rb_funcall(coder, id!("is_a?"), 1, hash)) {
+            attributes
+        } else {
+            ffi::rb_funcall(attributes, id!("materialize"), 0)
+        };
+        initialize(this, attributes);
         ffi::Qnil
     }
 }
