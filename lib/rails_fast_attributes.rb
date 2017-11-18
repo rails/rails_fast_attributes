@@ -27,5 +27,7 @@ module RailsFastAttributes
   end
 end
 
+ActiveRecord.send(:remove_const, :Attribute)
 ActiveRecord::Attribute = RailsFastAttributes::Attribute
+ActiveRecord::AttributeSet.send(:remove_const, :Builder)
 ActiveRecord::AttributeSet::Builder = RailsFastAttributes::Builder
