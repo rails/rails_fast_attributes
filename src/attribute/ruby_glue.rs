@@ -176,10 +176,20 @@ pub unsafe fn init() {
     ffi::rb_define_method(attribute, cstr!("init_with"), init_with as *const _, 1);
 
     let from_database = ffi::rb_define_class_under(attribute, cstr!("FromDatabase"), attribute);
-    ffi::rb_define_method(from_database, cstr!("init_with"), init_with_from_database as *const _, 1);
+    ffi::rb_define_method(
+        from_database,
+        cstr!("init_with"),
+        init_with_from_database as *const _,
+        1,
+    );
 
     let from_user = ffi::rb_define_class_under(attribute, cstr!("FromUser"), attribute);
-    ffi::rb_define_method(from_user, cstr!("init_with"), init_with_from_user as *const _, 1);
+    ffi::rb_define_method(
+        from_user,
+        cstr!("init_with"),
+        init_with_from_user as *const _,
+        1,
+    );
 }
 
 fn from_value(value: ffi::VALUE) -> Attribute {
@@ -357,10 +367,21 @@ extern "C" fn hash(this: ffi::VALUE) -> ffi::VALUE {
         let this = get_struct::<Attribute>(this);
         let discriminant = match *this {
             Uninitialized { .. } => 0,
-            Populated { source: FromUser(_), .. } => 1,
-            Populated { source: FromDatabase, .. } => 2,
-            Populated { source: PreCast, .. } => 3,
-            Populated { source: UserProvidedDefault(_), .. } => 4,
+            Populated {
+                source: FromUser(_),
+                ..
+            } => 1,
+            Populated {
+                source: FromDatabase,
+                ..
+            } => 2,
+            Populated {
+                source: PreCast, ..
+            } => 3,
+            Populated {
+                source: UserProvidedDefault(_),
+                ..
+            } => 4,
         };
         let discriminant = ffi::I322NUM(discriminant);
         let name = this.name();
@@ -554,7 +575,9 @@ extern "C" fn init_with_from_user(this: ffi::VALUE, coder: ffi::VALUE) -> ffi::V
         let original_attribute = if ffi::RB_NIL_P(original_attribute) {
             None
         } else {
-            Some(Box::new(get_struct::<Attribute>(original_attribute).clone()))
+            Some(Box::new(
+                get_struct::<Attribute>(original_attribute).clone(),
+            ))
         };
 
         *this = Attribute::Populated {
