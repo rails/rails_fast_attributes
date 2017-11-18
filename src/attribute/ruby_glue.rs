@@ -160,6 +160,8 @@ pub unsafe fn init() {
         0,
     );
     ffi::rb_define_method(attribute, cstr!("=="), equals as *const _, 1);
+    ffi::rb_define_method(attribute, cstr!("eql?"), equals as *const _, 1);
+    ffi::rb_define_method(attribute, cstr!("hash"), hash as *const _, 0);
     ffi::rb_define_method(
         attribute,
         cstr!("initialize_dup"),
@@ -336,6 +338,29 @@ extern "C" fn equals(this: ffi::VALUE, other: ffi::VALUE) -> ffi::VALUE {
         let this = get_struct::<Attribute>(this);
         let other = get_struct::<Attribute>(other);
         to_ruby_bool(this == other)
+    }
+}
+
+extern "C" fn hash(this: ffi::VALUE) -> ffi::VALUE {
+    use self::Attribute::*;
+    use self::Source::*;
+
+    unsafe {
+        let this = get_struct::<Attribute>(this);
+        let discriminant = match *this {
+            Uninitialized { .. } => 0,
+            Populated { source: FromUser(_), .. } => 1,
+            Populated { source: FromDatabase, .. } => 2,
+            Populated { source: PreCast, .. } => 3,
+            Populated { source: UserProvidedDefault(_), .. } => 4,
+        };
+        let discriminant = ffi::I322NUM(discriminant);
+        let name = this.name();
+        let value = this.value_before_type_cast();
+        let ty = this.ty();
+
+        let ary = to_ruby_array(4, vec![discriminant, name, value, ty]);
+        ffi::rb_funcall(ary, id!("hash"), 0)
     }
 }
 
