@@ -1,6 +1,7 @@
 use std::cell::Cell;
 
 use ffi;
+use into_ruby::IntoRuby;
 
 mod ruby_glue;
 
@@ -318,7 +319,9 @@ impl Attribute {
                 PreCast => raw_value.value(),
                 UserProvidedDefault(Some(ref orig)) => orig.original_value(),
             },
-            Uninitialized { .. } => unsafe { ffi::Qnil }, // FIXME: This is a marker object in Ruby
+            Uninitialized { .. } => unsafe {
+                ffi::rb_const_get(Self::class(), id!("UNINITIALIZED_ORIGINAL_VALUE"))
+            },
         }
     }
 

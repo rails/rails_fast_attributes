@@ -9,6 +9,8 @@ module RailsFastAttributes
   ORIGINAL_ATTRIBUTE = ActiveRecord::Attribute
 
   class Attribute
+    UNINITIALIZED_ORIGINAL_VALUE = Object.new
+
     def self.inherited(*)
       raise "ActiveRecord::Attribute cannot be subclassed when using rails_fast_attributes"
     end

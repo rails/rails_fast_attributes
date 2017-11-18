@@ -266,6 +266,21 @@ module ActiveRecord
       expect(attr).to eq(YAML.load(YAML.dump(attr)))
     end
 
+    specify "uninitialized attributes are always dirty when assigned" do
+      type = Type::String.new
+      attribute = Attribute.uninitialized(:foo, type)
+
+      expect(attribute).not_to be_changed
+
+      attribute = attribute.with_value_from_user("Sean")
+
+      expect(attribute).to be_changed
+
+      attribute = attribute.with_value_from_user(nil)
+
+      expect(attribute).to be_changed
+    end
+
     def attribute_from_user(name, value, type)
       Attribute.from_user(name, value, type, Attribute.uninitialized(name, type))
     end
