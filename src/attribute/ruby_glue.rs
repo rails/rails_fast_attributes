@@ -172,6 +172,12 @@ pub unsafe fn init() {
     ffi::rb_define_method(attribute, cstr!("_load_data"), load_data as *const _, 1);
     ffi::rb_define_method(attribute, cstr!("encode_with"), encode_with as *const _, 1);
     ffi::rb_define_method(attribute, cstr!("init_with"), init_with as *const _, 1);
+
+    let from_database = ffi::rb_define_class_under(attribute, cstr!("FromDatabase"), attribute);
+    ffi::rb_define_method(from_database, cstr!("init_with"), init_with_from_database as *const _, 1);
+
+    let from_user = ffi::rb_define_class_under(attribute, cstr!("FromUser"), attribute);
+    ffi::rb_define_method(from_user, cstr!("init_with"), init_with_from_user as *const _, 1);
 }
 
 fn from_value(value: ffi::VALUE) -> Attribute {
@@ -490,6 +496,75 @@ extern "C" fn init_with(this: ffi::VALUE, coder: ffi::VALUE) -> ffi::VALUE {
                 value,
             };
         }
+
+        ffi::Qnil
+    }
+}
+
+extern "C" fn init_with_from_database(this: ffi::VALUE, coder: ffi::VALUE) -> ffi::VALUE {
+    unsafe {
+        if ffi::RTEST(ffi::rb_funcall(coder, id!("[]"), 1, rstr!("source"))) {
+            return init_with(this, coder);
+        }
+
+        let this = get_struct::<Attribute>(this);
+        let name = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("name"));
+        let ty = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("type"));
+        let raw_value = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("value_before_type_cast"));
+        let value = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("value"));
+
+        let value = if ffi::RB_NIL_P(value) {
+            None
+        } else {
+            Some(value)
+        };
+
+        *this = Attribute::Populated {
+            name,
+            ty,
+            raw_value: MaybeProc::NotProc(raw_value),
+            source: Source::FromDatabase,
+            value,
+        };
+
+        ffi::Qnil
+    }
+}
+
+extern "C" fn init_with_from_user(this: ffi::VALUE, coder: ffi::VALUE) -> ffi::VALUE {
+    unsafe {
+        if ffi::RTEST(ffi::rb_funcall(coder, id!("[]"), 1, rstr!("source"))) {
+            return init_with(this, coder);
+        }
+
+        let this = get_struct::<Attribute>(this);
+        let name = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("name"));
+        let ty = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("type"));
+        let raw_value = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("value_before_type_cast"));
+        let value = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("value"));
+        let original_attribute = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("original_attribute"));
+
+        let value = if ffi::RB_NIL_P(value) {
+            None
+        } else {
+            Some(value)
+        };
+        let original_attribute = if ffi::RB_NIL_P(original_attribute) {
+            None
+        } else {
+            Some(Box::new(get_struct::<Attribute>(original_attribute).clone()))
+        };
+
+        *this = Attribute::Populated {
+            name,
+            ty,
+            raw_value: MaybeProc::NotProc(raw_value),
+            // Even though this was a `FromUser` subclass, if this YAML was
+            // dumped in Rails 4.2, `original_attribute` won't be there.
+            // `UserProvidedDefault` is the only thing that can have no original.
+            source: Source::UserProvidedDefault(original_attribute),
+            value,
+        };
 
         ffi::Qnil
     }
