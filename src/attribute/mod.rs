@@ -12,7 +12,7 @@ pub enum Attribute {
         raw_value: MaybeProc,
         ty: ffi::VALUE,
         source: Source,
-        value: Option<ffi::VALUE>,
+        value: Cell<Option<ffi::VALUE>>,
     },
     Uninitialized { name: ffi::VALUE, ty: ffi::VALUE },
 }
@@ -50,7 +50,7 @@ impl Attribute {
             raw_value: MaybeProc::NotProc(raw_value),
             ty,
             source: Source::FromDatabase,
-            value: None,
+            value: Cell::new(None),
         }
     }
 
@@ -65,7 +65,7 @@ impl Attribute {
             raw_value: MaybeProc::NotProc(raw_value),
             ty,
             source: Source::FromUser(Box::new(original_attribute)),
-            value: None,
+            value: Cell::new(None),
         }
     }
 
@@ -75,7 +75,7 @@ impl Attribute {
             raw_value: MaybeProc::NotProc(value),
             ty,
             source: Source::PreCast,
-            value: None,
+            value: Cell::new(None),
         }
     }
 
@@ -94,7 +94,7 @@ impl Attribute {
             raw_value,
             ty,
             source: Source::UserProvidedDefault(original_attribute.map(Box::new)),
-            value: None,
+            value: Cell::new(None),
         }
     }
 
@@ -106,22 +106,22 @@ impl Attribute {
         }
     }
 
-    pub fn value(&mut self) -> ffi::VALUE {
+    pub fn value(&self) -> ffi::VALUE {
         use self::Attribute::*;
 
         unsafe {
             match *self {
                 Populated {
-                    ref mut value,
+                    ref value,
                     ref source,
                     ty,
                     ref raw_value,
                     ..
                 } => {
-                    if value.is_none() {
-                        *value = Some(cast_value(source, ty, raw_value.value()));
+                    if value.get().is_none() {
+                        value.set(Some(cast_value(source, ty, raw_value.value())));
                     }
-                    value.unwrap()
+                    value.get().unwrap()
                 }
                 Uninitialized { name, .. } => if ffi::rb_block_given_p() {
                     ffi::rb_yield(name)
@@ -132,17 +132,17 @@ impl Attribute {
         }
     }
 
-    fn value_for_database(&mut self) -> ffi::VALUE {
+    fn value_for_database(&self) -> ffi::VALUE {
         let value = self.value();
         let ty = self.ty();
         unsafe { ffi::rb_funcall(ty, id!("serialize"), 1, value) }
     }
 
-    fn is_changed(&mut self) -> bool {
+    fn is_changed(&self) -> bool {
         self.is_changed_from_assignment() || self.is_changed_in_place()
     }
 
-    fn is_changed_in_place(&mut self) -> bool {
+    fn is_changed_in_place(&self) -> bool {
         if !self.has_been_read() {
             return false;
         }
@@ -160,7 +160,7 @@ impl Attribute {
         }
     }
 
-    fn forgetting_assignment(&mut self) -> Self {
+    fn forgetting_assignment(&self) -> Self {
         let value_for_database = self.value_for_database();
         self.with_value_from_database(value_for_database)
     }
@@ -181,7 +181,7 @@ impl Attribute {
         Self::from_cast_value(self.name(), value, self.ty())
     }
 
-    fn with_type(&mut self, ty: ffi::VALUE) -> Self {
+    fn with_type(&self, ty: ffi::VALUE) -> Self {
         use self::Attribute::*;
 
         if self.is_changed_in_place() {
@@ -198,7 +198,7 @@ impl Attribute {
                     raw_value: raw_value.clone(),
                     source: source.clone(),
                     ty,
-                    value: None,
+                    value: Cell::new(None),
                 },
                 Uninitialized { name, .. } => Uninitialized { name, ty },
             }
@@ -226,8 +226,8 @@ impl Attribute {
     }
 
     pub fn has_been_read(&self) -> bool {
-        if let Attribute::Populated { value: Some(_), .. } = *self {
-            true
+        if let Attribute::Populated { ref value, .. } = *self {
+            value.get().is_some()
         } else {
             false
         }
@@ -241,13 +241,13 @@ impl Attribute {
                 ref raw_value,
                 ty,
                 ref source,
-                value: Some(value),
+                ref value,
             } => Populated {
                 name,
                 raw_value: raw_value.clone(),
                 ty,
                 source: source.clone(),
-                value: Some(unsafe { ffi::rb_obj_dup(value) }),
+                value: Cell::new(value.get().map(|v| unsafe { ffi::rb_obj_dup(v) })),
             },
             _ => other.clone(),
         }
@@ -267,7 +267,7 @@ impl Attribute {
         }
     }
 
-    fn is_changed_from_assignment(&mut self) -> bool {
+    fn is_changed_from_assignment(&self) -> bool {
         if !self.has_been_assigned() {
             return false;
         }
@@ -325,12 +325,12 @@ impl Attribute {
         }
     }
 
-    fn original_value_for_database(&mut self) -> ffi::VALUE {
+    fn original_value_for_database(&self) -> ffi::VALUE {
         use self::Attribute::*;
         use self::Source::*;
         match *self {
             Populated {
-                source: FromUser(ref mut orig),
+                source: FromUser(ref orig),
                 ..
             } => orig.original_value_for_database(),
             Populated {
@@ -342,7 +342,7 @@ impl Attribute {
                 source: PreCast, ..
             } => self.value_for_database(),
             Populated {
-                source: UserProvidedDefault(Some(ref mut orig)),
+                source: UserProvidedDefault(Some(ref orig)),
                 ..
             } => orig.original_value_for_database(),
             Populated {
@@ -358,30 +358,15 @@ impl Attribute {
     }
 
     pub fn deep_dup(&self) -> Self {
-        use self::Attribute::Populated;
-
-        match *self {
-            Populated {
-                ref source,
-                name,
-                ref raw_value,
-                ty,
-                value: Some(value),
-            } => Populated {
-                source: source.clone(),
-                name,
-                raw_value: raw_value.clone(),
-                ty,
-                value: Some(unsafe { ffi::rb_obj_dup(value) }),
-            },
-            _ => self.clone(),
-        }
+        let mut result = Self::default();
+        result.initialize_dup(self);
+        result
     }
 
     pub fn without_cast_value(&self) -> Self {
-        let mut result = self.clone();
-        if let Attribute::Populated { ref mut value, .. } = result {
-            *value = None;
+        let result = self.clone();
+        if let Attribute::Populated { ref value, .. } = result {
+            value.set(None);
         }
         result
     }

@@ -1,3 +1,5 @@
+use std::cell::Cell;
+
 use ffi;
 use into_ruby::*;
 use super::{Attribute, MaybeProc, Source};
@@ -17,7 +19,7 @@ impl IntoRuby for Attribute {
                 ref raw_value,
                 ty,
                 ref source,
-                value,
+                ref value,
             } => {
                 ffi::rb_gc_mark(name);
                 raw_value.mark();
@@ -27,7 +29,7 @@ impl IntoRuby for Attribute {
                     UserProvidedDefault(Some(ref orig)) => orig.mark(),
                     UserProvidedDefault(None) | FromDatabase | PreCast => {} // noop
                 }
-                if let Some(value) = value {
+                if let Some(value) = value.get() {
                     ffi::rb_gc_mark(value);
                 }
             }
@@ -387,7 +389,7 @@ extern "C" fn dump_data(this: ffi::VALUE) -> ffi::VALUE {
             ref raw_value,
             ty,
             ref source,
-            value: _value,
+            value: ref _value,
         } => to_ruby_array(4, vec![name, ty, raw_value.value(), dump_source(source)]),
         Uninitialized { name, ty } => to_ruby_array(2, vec![name, ty]),
     };
@@ -413,7 +415,7 @@ extern "C" fn load_data(this: ffi::VALUE, data: ffi::VALUE) -> ffi::VALUE {
                 ty,
                 raw_value,
                 source,
-                value: None,
+                value: Cell::new(None),
             };
         }
 
@@ -451,11 +453,11 @@ extern "C" fn encode_with(this: ffi::VALUE, coder: ffi::VALUE) -> ffi::VALUE {
                 raw_value: ref _raw_value,
                 ty: _ty,
                 ref source,
-                value,
+                ref value,
             } => {
                 let source = dump_source(source);
                 ffi::rb_funcall(coder, id!("[]="), 2, rstr!("source"), source);
-                if let Some(value) = value {
+                if let Some(value) = value.get() {
                     ffi::rb_funcall(coder, id!("[]="), 2, rstr!("value"), value);
                 }
             }
@@ -493,7 +495,7 @@ extern "C" fn init_with(this: ffi::VALUE, coder: ffi::VALUE) -> ffi::VALUE {
                 ty,
                 raw_value: MaybeProc::NotProc(raw_value),
                 source,
-                value,
+                value: Cell::new(value),
             };
         }
 
@@ -524,7 +526,7 @@ extern "C" fn init_with_from_database(this: ffi::VALUE, coder: ffi::VALUE) -> ff
             ty,
             raw_value: MaybeProc::NotProc(raw_value),
             source: Source::FromDatabase,
-            value,
+            value: Cell::new(value),
         };
 
         ffi::Qnil
@@ -563,7 +565,7 @@ extern "C" fn init_with_from_user(this: ffi::VALUE, coder: ffi::VALUE) -> ffi::V
             // dumped in Rails 4.2, `original_attribute` won't be there.
             // `UserProvidedDefault` is the only thing that can have no original.
             source: Source::UserProvidedDefault(original_attribute),
-            value,
+            value: Cell::new(value),
         };
 
         ffi::Qnil

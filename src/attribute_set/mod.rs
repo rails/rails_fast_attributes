@@ -41,10 +41,10 @@ impl AttributeSet {
         result
     }
 
-    fn to_hash(&mut self) -> ffi::VALUE {
+    fn to_hash(&self) -> ffi::VALUE {
         let result = unsafe { ffi::rb_hash_new() };
         let attributes = self.attributes
-            .values_mut()
+            .values()
             .filter(|attr| attr.is_initialized());
         for attr in attributes {
             unsafe { ffi::rb_hash_aset(result, attr.name(), attr.value()) };
@@ -67,8 +67,8 @@ impl AttributeSet {
         to_ruby_array(self.attributes.len(), keys)
     }
 
-    fn fetch_value(&mut self, key: ffi::ID) -> Option<ffi::VALUE> {
-        self.attributes.get_mut(&key).map(Attribute::value)
+    fn fetch_value(&self, key: ffi::ID) -> Option<ffi::VALUE> {
+        self.get(key).map(Attribute::value)
     }
 
     fn write_from_database(&mut self, key: ffi::ID, value: ffi::VALUE) {
