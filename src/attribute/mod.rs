@@ -164,8 +164,13 @@ impl Attribute {
     }
 
     fn forgetting_assignment(&self) -> Self {
-        let value_for_database = self.value_for_database();
-        self.with_value_from_database(value_for_database)
+        match *self {
+            Attribute::Populated { .. } => {
+                let value_for_database = self.value_for_database();
+                self.with_value_from_database(value_for_database)
+            }
+            Attribute::Uninitialized { .. } => self.clone(),
+        }
     }
 
     pub fn with_value_from_user(self, value: ffi::VALUE) -> Self {
