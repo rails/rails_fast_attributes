@@ -23,7 +23,7 @@ pub unsafe fn init() {
     let builder = ffi::rb_define_class_under(::module(), cstr!("Builder"), ffi::rb_cObject);
     BUILDER = Some(builder);
 
-    ffi::rb_define_alloc_func(builder, Some(Builder::allocate));
+    ffi::rb_define_alloc_func(builder, Builder::allocate);
 
     ffi::rb_define_method(builder, cstr!("initialize"), initialize as *const _, -1);
     ffi::rb_define_method(

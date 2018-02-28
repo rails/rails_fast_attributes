@@ -1,4 +1,5 @@
 use {ffi, libc};
+use std::mem;
 
 pub trait IntoRuby: Sized {
     unsafe fn class() -> ffi::VALUE;
@@ -23,8 +24,8 @@ pub trait IntoRuby: Sized {
         unsafe {
             ffi::Data_Wrap_Struct(
                 Self::class(),
-                Some(Self::mark_ptr),
-                None,
+                Self::mark_ptr,
+                mem::transmute(0usize),
                 self as *const _ as *mut _,
             )
         }
@@ -35,8 +36,8 @@ pub trait IntoRuby: Sized {
         unsafe {
             ffi::Data_Wrap_Struct(
                 Self::class(),
-                Some(Self::mark_ptr),
-                Some(Self::destroy_ptr),
+                Self::mark_ptr,
+                Self::destroy_ptr,
                 ptr as *mut _,
             )
         }
@@ -47,14 +48,7 @@ pub trait Allocate: Default + IntoRuby {
     extern "C" fn allocate(class: ffi::VALUE) -> ffi::VALUE {
         let ptr = Box::into_raw(Box::new(Self::default()));
 
-        unsafe {
-            ffi::Data_Wrap_Struct(
-                class,
-                Some(Self::mark_ptr),
-                Some(Self::destroy_ptr),
-                ptr as *mut _,
-            )
-        }
+        unsafe { ffi::Data_Wrap_Struct(class, Self::mark_ptr, Self::destroy_ptr, ptr as *mut _) }
     }
 }
 

@@ -22,13 +22,13 @@ impl Builder {
             .reserve(ffi::RHASH_SIZE(types) as usize);
         ffi::rb_hash_foreach(
             types,
-            Some(push_uninitialized_value),
+            push_uninitialized_value,
             &mut self.uninitialized_attributes as *mut _ as *mut _,
         );
         if let Some(defaults) = defaults {
             ffi::rb_hash_foreach(
                 defaults,
-                Some(push_attribute),
+                push_attribute,
                 &mut self.uninitialized_attributes as *mut _ as *mut _,
             );
         }
@@ -45,16 +45,12 @@ impl Builder {
             if let Some(types) = additional_types {
                 ffi::rb_hash_foreach(
                     types,
-                    Some(push_uninitialized_value),
+                    push_uninitialized_value,
                     &mut attributes as *mut _ as *mut _,
                 );
             }
 
-            ffi::rb_hash_foreach(
-                values,
-                Some(push_value),
-                &mut attributes as *mut _ as *mut _,
-            );
+            ffi::rb_hash_foreach(values, push_value, &mut attributes as *mut _ as *mut _);
         }
 
         AttributeSet::new(attributes)

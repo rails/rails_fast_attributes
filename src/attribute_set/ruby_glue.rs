@@ -27,7 +27,7 @@ pub unsafe fn init() {
         ffi::rb_define_class_under(::module(), cstr!("AttributeSet"), ffi::rb_cObject);
     ATTRIBUTE_SET = Some(attribute_set);
 
-    ffi::rb_define_alloc_func(attribute_set, Some(AttributeSet::allocate));
+    ffi::rb_define_alloc_func(attribute_set, AttributeSet::allocate);
 
     ffi::rb_define_method(
         attribute_set,
@@ -101,7 +101,7 @@ extern "C" fn initialize(this: ffi::VALUE, attrs: ffi::VALUE) -> ffi::VALUE {
         this.attributes.reserve(ffi::RHASH_SIZE(attrs) as usize);
         ffi::rb_hash_foreach(
             attrs,
-            Some(push_attribute),
+            push_attribute,
             &mut this.attributes as *mut _ as *mut _,
         );
 

@@ -7,7 +7,7 @@ authors = ["Sean Griffin <sean@seantheprogrammer.com>"]
 crate-type = ["cdylib"]
 
 [dependencies]
-libcruby-sys = { path = "/Users/sean/builds/helix/crates/libcruby-sys" }
+libcruby-sys = { git = "https://github.com/tildeio/helix.git", rev = "6265a62c8d8d4ec50ea3958693a02608802ca3be" }
 libc = "0.2.0"
 lazy_static = "0.2.9"
 ordermap = "0.3.0"
