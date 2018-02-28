@@ -173,7 +173,7 @@ pub unsafe fn init() {
     ffi::rb_define_method(attribute, cstr!("_dump_data"), dump_data as *const _, 0);
     ffi::rb_define_method(attribute, cstr!("_load_data"), load_data as *const _, 1);
     ffi::rb_define_method(attribute, cstr!("encode_with"), encode_with as *const _, 1);
-    ffi::rb_define_method(attribute, cstr!("init_with"), init_with as *const _, 1);
+    ffi::rb_define_method(attribute, cstr!("init_with"), init_with_precast as *const _, 1);
 
     let from_database = ffi::rb_define_class_under(attribute, cstr!("FromDatabase"), attribute);
     ffi::rb_define_method(
@@ -188,6 +188,13 @@ pub unsafe fn init() {
         from_user,
         cstr!("init_with"),
         init_with_from_user as *const _,
+        1,
+    );
+
+    ffi::rb_define_method(
+        ffi::rb_define_class_under(attribute, cstr!("Uninitialized"), attribute),
+        cstr!("init_with"),
+        init_with_uninitialized as *const _,
         1,
     );
 }
@@ -445,8 +452,6 @@ extern "C" fn load_data(this: ffi::VALUE, data: ffi::VALUE) -> ffi::VALUE {
 }
 
 extern "C" fn encode_with(this: ffi::VALUE, coder: ffi::VALUE) -> ffi::VALUE {
-    use self::Attribute::*;
-
     unsafe {
         let this = get_struct::<Attribute>(this);
         let value_before_type_cast = this.value_before_type_cast();
@@ -463,115 +468,89 @@ extern "C" fn encode_with(this: ffi::VALUE, coder: ffi::VALUE) -> ffi::VALUE {
                 coder,
                 id!("[]="),
                 2,
-                rstr!("raw_value"),
+                rstr!("value_before_type_cast"),
                 value_before_type_cast,
             );
         }
 
-        match *this {
-            Populated {
-                name: _name,
-                raw_value: ref _raw_value,
-                ty: _ty,
-                ref source,
-                ref value,
-            } => {
-                let source = dump_source(source);
-                ffi::rb_funcall(coder, id!("[]="), 2, rstr!("source"), source);
-                if let Some(value) = value.get() {
-                    ffi::rb_funcall(coder, id!("[]="), 2, rstr!("value"), value);
-                }
-            }
-            Uninitialized { .. } => {} // noop
+        if let Some(orig) = this.original_attribute() {
+            ffi::rb_funcall(
+                coder,
+                id!("[]="),
+                2,
+                rstr!("original_attribute"),
+                orig.as_ruby(),
+            );
         }
+
+        if this.has_been_read() {
+            ffi::rb_funcall(coder, id!("[]="), 2, rstr!("value"), this.value());
+        }
+
+        lie_about_our_class(this, coder);
 
         ffi::Qnil
     }
 }
 
-extern "C" fn init_with(this: ffi::VALUE, coder: ffi::VALUE) -> ffi::VALUE {
+fn lie_about_our_class(this: &Attribute, coder: ffi::VALUE) {
     use self::Attribute::*;
+    use self::Source::*;
 
-    unsafe {
-        let this = get_struct_mut::<Attribute>(this);
+    let class_name = match *this {
+        Populated { source: FromUser(..), .. } => "FromUser",
+        Populated { source: FromDatabase, .. } => "FromDatabase",
+        Populated { source: PreCast, .. } => "WithCastValue",
+        Populated { source: UserProvidedDefault(..), .. } => "UserProvidedDefault",
+        Uninitialized { .. } => "Uninitialized",
+    };
+    let tag = format!("!ruby/object:ActiveModel::Attribute::{}", class_name);
+    // This method is definitely not meant to override the tag,
+    // but it's the only method in the public API that lets us do it without
+    // other side effects
+    unsafe { ffi::rb_funcall(coder, id!("map"), 1, rstr!(&tag)); }
+}
 
-        let name = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("name"));
-        let ty = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("type"));
-        let raw_value = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("raw_value"));
-        let source = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("source"));
-        let value = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("value"));
+/// Contains the common logic of `init_with` for all populated variants.
+/// Source will be set to `Source::PreCast`.
+unsafe fn init_with_populated(this: &mut Attribute, coder: ffi::VALUE) {
+    let name = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("name"));
+    let ty = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("type"));
+    let raw_value = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("value_before_type_cast"));
+    let value = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("value"));
 
-        if ffi::RB_NIL_P(source) {
-            *this = Uninitialized { name, ty };
-        } else {
-            let value = if ffi::RB_NIL_P(value) {
-                None
-            } else {
-                Some(value)
-            };
-            let source = load_source(source);
+    let value = if ffi::RB_NIL_P(value) {
+        None
+    } else {
+        Some(value)
+    };
 
-            *this = Populated {
-                name,
-                ty,
-                raw_value: MaybeProc::NotProc(raw_value),
-                source,
-                value: Cell::new(value),
-            };
-        }
-
-        ffi::Qnil
-    }
+    *this = Attribute::Populated {
+        name,
+        ty,
+        raw_value: MaybeProc::NotProc(raw_value),
+        source: Source::PreCast,
+        value: Cell::new(value),
+    };
 }
 
 extern "C" fn init_with_from_database(this: ffi::VALUE, coder: ffi::VALUE) -> ffi::VALUE {
     unsafe {
-        if ffi::RTEST(ffi::rb_funcall(coder, id!("[]"), 1, rstr!("source"))) {
-            return init_with(this, coder);
-        }
-
         let this = get_struct_mut::<Attribute>(this);
-        let name = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("name"));
-        let ty = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("type"));
-        let raw_value = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("value_before_type_cast"));
-        let value = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("value"));
-
-        let value = if ffi::RB_NIL_P(value) {
-            None
-        } else {
-            Some(value)
-        };
-
-        *this = Attribute::Populated {
-            name,
-            ty,
-            raw_value: MaybeProc::NotProc(raw_value),
-            source: Source::FromDatabase,
-            value: Cell::new(value),
-        };
-
+        init_with_populated(this, coder);
+        match *this {
+            Attribute::Populated { ref mut source, .. } => *source = Source::FromDatabase,
+            _ => unreachable!(),
+        }
         ffi::Qnil
     }
 }
 
 extern "C" fn init_with_from_user(this: ffi::VALUE, coder: ffi::VALUE) -> ffi::VALUE {
     unsafe {
-        if ffi::RTEST(ffi::rb_funcall(coder, id!("[]"), 1, rstr!("source"))) {
-            return init_with(this, coder);
-        }
-
         let this = get_struct_mut::<Attribute>(this);
-        let name = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("name"));
-        let ty = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("type"));
-        let raw_value = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("value_before_type_cast"));
-        let value = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("value"));
+        init_with_populated(this, coder);
         let original_attribute = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("original_attribute"));
-
-        let value = if ffi::RB_NIL_P(value) {
-            None
-        } else {
-            Some(value)
-        };
         let original_attribute = if ffi::RB_NIL_P(original_attribute) {
             None
         } else {
@@ -579,17 +558,34 @@ extern "C" fn init_with_from_user(this: ffi::VALUE, coder: ffi::VALUE) -> ffi::V
                 get_struct::<Attribute>(original_attribute).clone(),
             ))
         };
+        // Even though this was a `FromUser` subclass, if this YAML was
+        // dumped in Rails 4.2, `original_attribute` won't be there.
+        // `UserProvidedDefault` is the only thing that can have no original.
+        match *this {
+            Attribute::Populated { ref mut source, .. } => *source = Source::UserProvidedDefault(original_attribute),
+            _ => unreachable!(),
+        }
 
-        *this = Attribute::Populated {
-            name,
-            ty,
-            raw_value: MaybeProc::NotProc(raw_value),
-            // Even though this was a `FromUser` subclass, if this YAML was
-            // dumped in Rails 4.2, `original_attribute` won't be there.
-            // `UserProvidedDefault` is the only thing that can have no original.
-            source: Source::UserProvidedDefault(original_attribute),
-            value: Cell::new(value),
-        };
+        ffi::Qnil
+    }
+}
+
+extern "C" fn init_with_precast(this: ffi::VALUE, coder: ffi::VALUE) -> ffi::VALUE {
+    unsafe {
+        let this = get_struct_mut::<Attribute>(this);
+        init_with_populated(this, coder);
+
+        ffi::Qnil
+    }
+}
+
+extern "C" fn init_with_uninitialized(this: ffi::VALUE, coder: ffi::VALUE) -> ffi::VALUE {
+    unsafe {
+        let this = get_struct_mut::<Attribute>(this);
+        let name = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("name"));
+        let ty = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("type"));
+
+        *this = Attribute::Uninitialized { name, ty };
 
         ffi::Qnil
     }

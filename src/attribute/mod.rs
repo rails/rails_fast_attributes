@@ -366,6 +366,17 @@ impl Attribute {
         }
     }
 
+    fn original_attribute(&self) -> Option<&Attribute> {
+        use self::Attribute::*;
+        use self::Source::*;
+
+        match *self {
+            Populated { source: FromUser(ref orig), .. } => Some(orig),
+            Populated { source: UserProvidedDefault(Some(ref orig)), .. } => Some(&**orig),
+            _ => None,
+        }
+    }
+
     pub fn deep_dup(&self) -> Self {
         let mut result = Self::default();
         result.initialize_dup(self);
