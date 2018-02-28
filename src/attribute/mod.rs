@@ -14,7 +14,10 @@ pub enum Attribute {
         source: Source,
         value: Cell<Option<ffi::VALUE>>,
     },
-    Uninitialized { name: ffi::VALUE, ty: ffi::VALUE },
+    Uninitialized {
+        name: ffi::VALUE,
+        ty: ffi::VALUE,
+    },
 }
 
 impl Default for Attribute {
@@ -371,8 +374,14 @@ impl Attribute {
         use self::Source::*;
 
         match *self {
-            Populated { source: FromUser(ref orig), .. } => Some(orig),
-            Populated { source: UserProvidedDefault(Some(ref orig)), .. } => Some(&**orig),
+            Populated {
+                source: FromUser(ref orig),
+                ..
+            } => Some(orig),
+            Populated {
+                source: UserProvidedDefault(Some(ref orig)),
+                ..
+            } => Some(&**orig),
             _ => None,
         }
     }

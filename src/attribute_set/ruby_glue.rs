@@ -29,7 +29,12 @@ pub unsafe fn init() {
 
     ffi::rb_define_alloc_func(attribute_set, Some(AttributeSet::allocate));
 
-    ffi::rb_define_method(attribute_set, cstr!("initialize"), initialize as *const _, 1);
+    ffi::rb_define_method(
+        attribute_set,
+        cstr!("initialize"),
+        initialize as *const _,
+        1,
+    );
     ffi::rb_define_method(attribute_set, cstr!("fetch"), fetch as *const _, 1);
     ffi::rb_define_method(
         attribute_set,
@@ -147,9 +152,7 @@ extern "C" fn get(this: ffi::VALUE, name: ffi::VALUE) -> ffi::VALUE {
     let key = string_or_symbol_to_id(name);
     this.get(key)
         .map(IntoRuby::as_ruby)
-        .unwrap_or_else(|| unsafe {
-            ffi::rb_funcall(Attribute::class(), id!("null"), 1, name)
-        })
+        .unwrap_or_else(|| unsafe { ffi::rb_funcall(Attribute::class(), id!("null"), 1, name) })
 }
 
 extern "C" fn set(this: ffi::VALUE, key: ffi::VALUE, value: ffi::VALUE) -> ffi::VALUE {

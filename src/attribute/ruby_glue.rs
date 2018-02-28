@@ -173,7 +173,12 @@ pub unsafe fn init() {
     ffi::rb_define_method(attribute, cstr!("_dump_data"), dump_data as *const _, 0);
     ffi::rb_define_method(attribute, cstr!("_load_data"), load_data as *const _, 1);
     ffi::rb_define_method(attribute, cstr!("encode_with"), encode_with as *const _, 1);
-    ffi::rb_define_method(attribute, cstr!("init_with"), init_with_precast as *const _, 1);
+    ffi::rb_define_method(
+        attribute,
+        cstr!("init_with"),
+        init_with_precast as *const _,
+        1,
+    );
 
     let from_database = ffi::rb_define_class_under(attribute, cstr!("FromDatabase"), attribute);
     ffi::rb_define_method(
@@ -498,17 +503,30 @@ fn lie_about_our_class(this: &Attribute, coder: ffi::VALUE) {
     use self::Source::*;
 
     let class_name = match *this {
-        Populated { source: FromUser(..), .. } => "FromUser",
-        Populated { source: FromDatabase, .. } => "FromDatabase",
-        Populated { source: PreCast, .. } => "WithCastValue",
-        Populated { source: UserProvidedDefault(..), .. } => "UserProvidedDefault",
+        Populated {
+            source: FromUser(..),
+            ..
+        } => "FromUser",
+        Populated {
+            source: FromDatabase,
+            ..
+        } => "FromDatabase",
+        Populated {
+            source: PreCast, ..
+        } => "WithCastValue",
+        Populated {
+            source: UserProvidedDefault(..),
+            ..
+        } => "UserProvidedDefault",
         Uninitialized { .. } => "Uninitialized",
     };
     let tag = format!("!ruby/object:ActiveModel::Attribute::{}", class_name);
     // This method is definitely not meant to override the tag,
     // but it's the only method in the public API that lets us do it without
     // other side effects
-    unsafe { ffi::rb_funcall(coder, id!("map"), 1, rstr!(&tag)); }
+    unsafe {
+        ffi::rb_funcall(coder, id!("map"), 1, rstr!(&tag));
+    }
 }
 
 /// Contains the common logic of `init_with` for all populated variants.
@@ -562,7 +580,9 @@ extern "C" fn init_with_from_user(this: ffi::VALUE, coder: ffi::VALUE) -> ffi::V
         // dumped in Rails 4.2, `original_attribute` won't be there.
         // `UserProvidedDefault` is the only thing that can have no original.
         match *this {
-            Attribute::Populated { ref mut source, .. } => *source = Source::UserProvidedDefault(original_attribute),
+            Attribute::Populated { ref mut source, .. } => {
+                *source = Source::UserProvidedDefault(original_attribute)
+            }
             _ => unreachable!(),
         }
 
