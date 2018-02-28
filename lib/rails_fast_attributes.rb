@@ -30,6 +30,13 @@ module RailsFastAttributes
     end
   end
 
+  ORIGINAL_ATTRIBUTE.const_get(:Null).class_eval do
+    undef with_type
+    def with_type(type)
+      Attribute.with_cast_value(name, nil, type)
+    end
+  end
+
   class AttributeSet
     Builder = RailsFastAttributes::Builder
     YAMLEncoder = ActiveModel::AttributeSet::YAMLEncoder
