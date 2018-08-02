@@ -50,6 +50,7 @@ deploy:
   file: $CRATE_NAME-$TRAVIS_TAG-$TARGET.*
   on:
     condition: $TRAVIS_RUST_VERSION = stable
+    branch: travis-test
   provider: releases
   skip_cleanup: true
 
