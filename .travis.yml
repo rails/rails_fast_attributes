@@ -1,5 +1,71 @@
-sudo: false
-language: ruby
-rvm:
-  - 2.4.0
-before_install: gem install bundler -v 1.16.0
+dist: trusty
+services: docker
+sudo: required
+language: rust
+
+
+env:
+  global:
+    - CRATE_NAME=rails_fast_attributes
+
+matrix:
+  include:
+    - language: ruby
+      rvm: 2.4.0
+      before_install: gem install bundler -v 1.16.0
+    - env: TARGET=i686-unknown-linux-gnu
+    - env: TARGET=x86_64-unknown-linux-gnu
+
+    - env: TARGET=i686-apple-darwin
+      os: osx
+    - env: TARGET=x86_64-apple-darwin
+      os: osx
+
+    - env: TARGET=i686-unknown-freebsd DISABLE_TESTS=1
+    - env: TARGET=x86_64-unknown-freebsd DISABLE_TESTS=1
+    - env: TARGET=x86_64-unknown-netbsd DISABLE_TESTS=1
+
+    - env: TARGET=x86_64-pc-windows-gnu
+
+before_install:
+  - set -e
+  - rustup self update
+
+install:
+  - sh ci/install.sh
+  - source ~/.cargo/env || true
+
+script:
+  - bash ci/script.sh
+
+after_script: set +e
+
+before_deploy:
+  - sh ci/before_deploy.sh
+
+deploy:
+  api_key:
+    secure: "HP03XrrTII1feqFIfpsNDQRWkAvKiOkSum8+gOJuEZ8+n+QNPUWDxaNYMhtRz83lQw0tPUae4gXbva65NC49+JyKS+n2Utdrq7fAlamjDnK+BVKLvoQK1q1ki766mb3BVJVQ1jdmx22HrXMRMPGFrmnSNjO3vKFUg61nChf3/IMyCQoeOV4BIxooYWIQDDt67DvmWKzU5baYmhkB0TsYA5pvxOKKB08xXNswF0Ab6PM40oYdFpJLk8MmN5jlEPMkcfehMMilxrtiOL47bk7+hRpp1p6qPQlbhBd3tqIb18LbEDACxVMBBbZySSI8B5QVofmf57NaLpuA8VyfITf3sxWS1AWaJ6mu8xK7D4WdVg056uMU4cW5JuRyoETi3yCI6whac1Fj168ely1OkfC3voKAFSm119exOOKchl178fwrCcslrzKFHLnGk+vd3sFiZbjKPJjC/IhJBqCxhLua1fDHTVSm3LXN9K2mOMIL7aYZRwUSxHxpaN4n5P6tCGuMZGnb1yHXA6JsISlRH/TDT89oadmO3T0iw/p5/e9zNy/GIgHDVdmuJXo6RDpnOrcOXw2ltqktaqWcQUxHvgHxV0mhvxP9lWToU2DtAneAPNtKT2/aVvuiYcznu88r7fsfT+HWOjzAUFHo3++Lcx7HzQWpXDJdySqn8gQ1/iqesk8="
+  file_glob: true
+  file: $CRATE_NAME-$TRAVIS_TAG-$TARGET.*
+  on:
+    condition: $TRAVIS_RUST_VERSION = stable
+    tags: true
+  provider: releases
+  skip_cleanup: true
+
+cache: cargo
+before_cache:
+  # Travis can't cache files that are not readable by "others"
+  - chmod -R a+r $HOME/.cargo
+
+branches:
+  only:
+    # release tags
+    - /^v\d+\.\d+\.\d+.*$/
+    - master
+    - travis-test
+
+notifications:
+  email:
+    on_success: never
