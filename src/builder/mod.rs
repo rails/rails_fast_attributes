@@ -1,4 +1,4 @@
-use ordermap::OrderMap;
+use indexmap::IndexMap;
 
 use attribute::Attribute;
 use attribute_set::AttributeSet;
@@ -9,7 +9,7 @@ mod ruby_glue;
 
 #[derive(Default, Clone)]
 pub struct Builder {
-    uninitialized_attributes: OrderMap<ffi::ID, Attribute>,
+    uninitialized_attributes: IndexMap<ffi::ID, Attribute>,
 }
 
 impl Builder {
@@ -66,7 +66,7 @@ extern "C" fn push_uninitialized_value(
     value: ffi::VALUE,
     hash_ptr: *mut libc::c_void,
 ) -> ffi::st_retval {
-    let hash_ptr = hash_ptr as *mut OrderMap<ffi::ID, Attribute>;
+    let hash_ptr = hash_ptr as *mut IndexMap<ffi::ID, Attribute>;
     let hash = unsafe { hash_ptr.as_mut().unwrap() };
 
     let id = string_or_symbol_to_id(key);
@@ -82,7 +82,7 @@ extern "C" fn push_value(
     value: ffi::VALUE,
     data_ptr: *mut libc::c_void,
 ) -> ffi::st_retval {
-    let data_ptr = data_ptr as *mut OrderMap<ffi::ID, Attribute>;
+    let data_ptr = data_ptr as *mut IndexMap<ffi::ID, Attribute>;
     let hash = unsafe { data_ptr.as_mut().unwrap() };
 
     let id = string_or_symbol_to_id(key);
@@ -106,7 +106,7 @@ extern "C" fn push_attribute(
     value: ffi::VALUE,
     data_ptr: *mut libc::c_void,
 ) -> ffi::st_retval {
-    let data_ptr = data_ptr as *mut OrderMap<ffi::ID, Attribute>;
+    let data_ptr = data_ptr as *mut IndexMap<ffi::ID, Attribute>;
     let hash = unsafe { data_ptr.as_mut().unwrap() };
 
     let id = string_or_symbol_to_id(key);

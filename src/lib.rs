@@ -3,7 +3,7 @@
 extern crate lazy_static;
 extern crate libc;
 extern crate libcruby_sys as ffi;
-extern crate ordermap;
+extern crate indexmap;
 
 macro_rules! cstr {
     ($s:expr) => {
