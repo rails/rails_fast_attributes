@@ -1,4 +1,4 @@
-use ordermap::OrderMap;
+use indexmap::IndexMap;
 
 use attribute::Attribute;
 use {ffi, libc};
@@ -110,7 +110,7 @@ extern "C" fn initialize(this: ffi::VALUE, attrs: ffi::VALUE) -> ffi::VALUE {
             value: ffi::VALUE,
             hash_ptr: *mut libc::c_void,
         ) -> ffi::st_retval {
-            let hash_ptr = hash_ptr as *mut OrderMap<ffi::ID, Attribute>;
+            let hash_ptr = hash_ptr as *mut IndexMap<ffi::ID, Attribute>;
             let hash = unsafe { hash_ptr.as_mut().unwrap() };
 
             let id = string_or_symbol_to_id(key);

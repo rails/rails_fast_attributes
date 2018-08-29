@@ -1,4 +1,4 @@
-use ordermap::OrderMap;
+use indexmap::IndexMap;
 use std::ffi::CString;
 
 use attribute::Attribute;
@@ -9,11 +9,11 @@ mod ruby_glue;
 
 #[derive(Default, Clone, PartialEq, Eq)]
 pub struct AttributeSet {
-    attributes: OrderMap<ffi::ID, Attribute>,
+    attributes: IndexMap<ffi::ID, Attribute>,
 }
 
 impl AttributeSet {
-    pub fn new(attributes: OrderMap<ffi::ID, Attribute>) -> Self {
+    pub fn new(attributes: IndexMap<ffi::ID, Attribute>) -> Self {
         Self { attributes }
     }
 
@@ -81,7 +81,7 @@ impl AttributeSet {
     }
 
     fn write_from_user(&mut self, key: ffi::ID, value: ffi::VALUE) {
-        use ordermap::Entry::*;
+        use indexmap::map::Entry::*;
         use std::mem::swap;
 
         match self.attributes.entry(key) {
