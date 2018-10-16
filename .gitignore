@@ -14,4 +14,4 @@
 /target/
 **/*.rs.bk
 Cargo.lock
-/lib/rails_fast_attributes/native.*
+/lib/rails_fast_attributes/native.bundle
