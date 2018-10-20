@@ -196,6 +196,22 @@ pub unsafe fn init() {
         1,
     );
 
+    let user_provided_default = ffi::rb_define_class_under(attribute, cstr!("UserProvidedDefault"), from_user);
+     ffi::rb_define_method(
+        user_provided_default,
+        cstr!("init_with"),
+        init_with_from_user as *const _,
+        1,
+    );
+
+    let with_cast_value = ffi::rb_define_class_under(attribute, cstr!("WithCastValue"), attribute);
+    ffi::rb_define_method(
+        with_cast_value,
+        cstr!("init_with"),
+        init_with_precast as *const _,
+        1,
+    );
+
     ffi::rb_define_method(
         ffi::rb_define_class_under(attribute, cstr!("Uninitialized"), attribute),
         cstr!("init_with"),

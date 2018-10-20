@@ -22,12 +22,6 @@ module RailsFastAttributes
     def self.null(name)
       ORIGINAL_ATTRIBUTE.null(name)
     end
-
-    module UserProvidedDefault
-      def self.new(name, value, ty, original_attr = nil)
-        Attribute.user_provided_default(name, value, ty, original_attr)
-      end
-    end
   end
 
   ORIGINAL_ATTRIBUTE.const_get(:Null).class_eval do
