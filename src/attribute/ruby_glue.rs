@@ -585,20 +585,21 @@ extern "C" fn init_with_from_user(this: ffi::VALUE, coder: ffi::VALUE) -> ffi::V
         let this = get_struct_mut::<Attribute>(this);
         init_with_populated(this, coder);
         let original_attribute = ffi::rb_funcall(coder, id!("[]"), 1, rstr!("original_attribute"));
-        let original_attribute = if ffi::RB_NIL_P(original_attribute) {
-            None
+        let new_source = if ffi::RB_NIL_P(original_attribute) {
+            // Even though this was a `FromUser` subclass, if this YAML was
+            // dumped in Rails 4.2, `original_attribute` won't be there.
+            // `UserProvidedDefault` is the only thing that can have no original.
+            Source::UserProvidedDefault(None)
         } else {
-            Some(Box::new(
-                get_struct::<Attribute>(original_attribute).clone(),
+            Source::FromUser(Box::new(
+                get_struct::<Attribute>(original_attribute).clone()
             ))
         };
-        // Even though this was a `FromUser` subclass, if this YAML was
-        // dumped in Rails 4.2, `original_attribute` won't be there.
-        // `UserProvidedDefault` is the only thing that can have no original.
+
         match *this {
             Attribute::Populated { ref mut source, .. } => {
-                *source = Source::UserProvidedDefault(original_attribute)
-            }
+                *source = new_source
+            },
             _ => unreachable!(),
         }
 
