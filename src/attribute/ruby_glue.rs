@@ -176,46 +176,7 @@ pub unsafe fn init() {
     ffi::rb_define_method(
         attribute,
         cstr!("init_with"),
-        init_with_precast as *const _,
-        1,
-    );
-
-    let from_database = ffi::rb_define_class_under(attribute, cstr!("FromDatabase"), attribute);
-    ffi::rb_define_method(
-        from_database,
-        cstr!("init_with"),
-        init_with_from_database as *const _,
-        1,
-    );
-
-    let from_user = ffi::rb_define_class_under(attribute, cstr!("FromUser"), attribute);
-    ffi::rb_define_method(
-        from_user,
-        cstr!("init_with"),
-        init_with_from_user as *const _,
-        1,
-    );
-
-    let user_provided_default = ffi::rb_define_class_under(attribute, cstr!("UserProvidedDefault"), from_user);
-     ffi::rb_define_method(
-        user_provided_default,
-        cstr!("init_with"),
-        init_with_from_user as *const _,
-        1,
-    );
-
-    let with_cast_value = ffi::rb_define_class_under(attribute, cstr!("WithCastValue"), attribute);
-    ffi::rb_define_method(
-        with_cast_value,
-        cstr!("init_with"),
-        init_with_precast as *const _,
-        1,
-    );
-
-    ffi::rb_define_method(
-        ffi::rb_define_class_under(attribute, cstr!("Uninitialized"), attribute),
-        cstr!("init_with"),
-        init_with_uninitialized as *const _,
+        init_with as *const _,
         1,
     );
 }
@@ -604,6 +565,35 @@ extern "C" fn init_with_from_user(this: ffi::VALUE, coder: ffi::VALUE) -> ffi::V
         }
 
         ffi::Qnil
+    }
+}
+
+extern "C" fn init_with(this: ffi::VALUE, coder: ffi::VALUE) -> ffi::VALUE {
+    unsafe {
+        use std::slice;
+        use std::ffi::CString;
+        use std::str;
+
+        let tag = ffi::rb_funcall(coder, id!("tag"), 0);
+        let tag_ptr = ffi::RSTRING_PTR(tag);
+        let tag_len = ffi::RSTRING_LEN(tag);
+        let tag = slice::from_raw_parts(tag_ptr as _, tag_len as usize);
+
+        let tag_prefix_len = b"!ruby/object:ActiveModel::Attribute::".len();
+
+        match &tag[tag_prefix_len..] {
+            b"FromUser" | b"UserProvidedDefault" => init_with_from_user(this, coder),
+            b"FromDatabase" => init_with_from_database(this, coder),
+            b"WithCastValue" => init_with_precast(this, coder),
+            b"Uninitialized" => init_with_uninitialized(this, coder),
+            other => {
+                let tag_str = str::from_utf8(other).unwrap_or("{invalid UTF-8}");
+                let error = format!("Unrecognized tag: {}", tag_str);
+                // This trunctates the tag if there is a 0 byete in the middle of our Rust string.
+                let message = CString::from_vec_unchecked(error.into());
+                ffi::rb_raise(ffi::rb_eTypeError, cstr!("%s"), message.as_ptr());
+            }
+        }
     }
 }
 

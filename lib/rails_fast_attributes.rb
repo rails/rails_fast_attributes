@@ -22,6 +22,14 @@ module RailsFastAttributes
     def self.null(name)
       ORIGINAL_ATTRIBUTE.null(name)
     end
+
+    FromDatabase = self
+    FromUser = self
+    WithCastValue = self
+    Uninitialized = self
+    UserProvidedDefault = self
+
+    private_constant :FromDatabase, :FromUser, :WithCastValue, :Uninitialized
   end
 
   ORIGINAL_ATTRIBUTE.const_get(:Null).class_eval do

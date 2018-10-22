@@ -47,6 +47,16 @@ module ActiveModel
       expect(type).to have_received(:deserialize).once
     end
 
+    specify "UserProvidedDefault memoization" do
+      type = Type::Integer.new
+      call_count = 0
+      attr = Attribute::UserProvidedDefault.new(:joy, proc { call_count += 1 }, type, Attribute.uninitialized(:joy, type))
+      expect(attr.value_before_type_cast).to eq(1)
+      attr.value_before_type_cast
+      attr.value_before_type_cast
+      expect(call_count).to eq(1)
+    end
+
     specify "read_before_typecast returns the given value" do
       attribute = Attribute.from_database(nil, "raw value", type)
 
@@ -259,18 +269,31 @@ module ActiveModel
       expect(from_database.came_from_user?).not_to be
     end
 
-    it "can be yaml encoded" do
+    specify "yaml encode from_database + user assignment" do
       type = Type::Value.new
       attr = Attribute.from_database(:foo, 1, type).with_value_from_user(2)
+      dumped = YAML.dump(attr)
+      round_tripped = YAML.load(dumped)
 
-      expect(attr).to eq(YAML.load(YAML.dump(attr)))
+      expect(round_tripped).to eq(attr)
+      expect(attr).to eq(round_tripped)
+    end
+
+    specify "yaml encode user_provided_default" do
+      type = Type::Value.new
+      attr = attribute_from_user(:foo, 1, type)
+      dumped = YAML.dump(attr)
+      round_tripped = YAML.load(dumped)
+
+      expect(round_tripped).to eq(attr)
+      expect(attr).to eq(round_tripped)
     end
 
     it "can deserialize YAML from the original implementation" do
       attr = RailsFastAttributes::ORIGINAL_ATTRIBUTE.from_database(:foo, 1, Type::Value.new).with_value_from_user(2)
 
       fast_attr = YAML.load(YAML.dump(attr))
-      expect(fast_attr).to be_a(RailsFastAttributes::Attribute::FromUser)
+      expect(fast_attr).to be_a(RailsFastAttributes::Attribute)
       expect(fast_attr.value).to eq(2)
       expect(fast_attr).to be_changed
       expect(fast_attr.name).to eq(attr.name)
