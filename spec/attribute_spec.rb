@@ -266,6 +266,16 @@ module ActiveModel
       expect(attr).to eq(YAML.load(YAML.dump(attr)))
     end
 
+    it "can deserialize YAML from the original implementation" do
+      attr = RailsFastAttributes::ORIGINAL_ATTRIBUTE.from_database(:foo, 1, Type::Value.new).with_value_from_user(2)
+
+      fast_attr = YAML.load(YAML.dump(attr))
+      expect(fast_attr).to be_a(RailsFastAttributes::Attribute::FromUser)
+      expect(fast_attr.value).to eq(2)
+      expect(fast_attr).to be_changed
+      expect(fast_attr.name).to eq(attr.name)
+    end
+
     specify "uninitialized attributes are always dirty when assigned" do
       type = Type::String.new
       attribute = Attribute.uninitialized(:foo, type)
