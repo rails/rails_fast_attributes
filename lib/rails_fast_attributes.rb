@@ -27,9 +27,18 @@ module RailsFastAttributes
     FromUser = self
     WithCastValue = self
     Uninitialized = self
-    UserProvidedDefault = self
 
     private_constant :FromDatabase, :FromUser, :WithCastValue, :Uninitialized
+
+    module UserProvidedDefault
+      def self.new(name, value, ty, original_attr = nil)
+        Attribute.user_provided_default(name, value, ty, original_attr)
+      end
+
+      def self.allocate
+        Attribute.allocate
+      end
+    end
   end
 
   ORIGINAL_ATTRIBUTE.const_get(:Null).class_eval do
