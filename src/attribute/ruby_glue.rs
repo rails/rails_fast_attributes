@@ -571,7 +571,6 @@ extern "C" fn init_with_from_user(this: ffi::VALUE, coder: ffi::VALUE) -> ffi::V
 extern "C" fn init_with(this: ffi::VALUE, coder: ffi::VALUE) -> ffi::VALUE {
     unsafe {
         use std::slice;
-        use std::ffi::CString;
         use std::str;
 
         let tag = ffi::rb_funcall(coder, id!("tag"), 0);
@@ -588,10 +587,9 @@ extern "C" fn init_with(this: ffi::VALUE, coder: ffi::VALUE) -> ffi::VALUE {
             b"Uninitialized" => init_with_uninitialized(this, coder),
             other => {
                 let tag_str = str::from_utf8(other).unwrap_or("{invalid UTF-8}");
-                let error = format!("Unrecognized tag: {}", tag_str);
-                // This trunctates the tag if there is a 0 byete in the middle of our Rust string.
-                let message = CString::from_vec_unchecked(error.into());
-                ffi::rb_raise(ffi::rb_eTypeError, cstr!("%s"), message.as_ptr());
+                // We don't get the whole tag if there is a 0 byete in the middle of the tag.
+                let error = format!("Unrecognized tag: {}\0", tag_str);
+                ffi::rb_raise(ffi::rb_eTypeError, cstr!("%s"), error.as_bytes().as_ptr());
             }
         }
     }
