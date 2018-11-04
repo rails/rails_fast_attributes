@@ -46,6 +46,33 @@ pub enum MaybeProc {
     },
 }
 
+impl Drop for Attribute {
+    fn drop(&mut self) {
+
+        match *self {
+            Attribute::Populated {
+                ref mut value,
+                ref mut raw_value,
+                ..
+            } =>  {
+                value.set(Some(unsafe{ffi::Qnil}));
+                match *raw_value {
+                    MaybeProc::Proc {
+                        ref mut memo,
+                        ..
+                    } => memo.set(Some(unsafe{ffi::Qnil})),
+                    MaybeProc::NotProc(ref mut val) => *val = unsafe{ffi::Qnil}
+                }
+            },
+            Attribute::Uninitialized{
+                ref mut name,
+                ..
+            } => *name = unsafe{ffi::Qnil}
+
+        }
+    }
+}
+
 impl Attribute {
     pub fn from_database(name: ffi::VALUE, raw_value: ffi::VALUE, ty: ffi::VALUE) -> Self {
         Attribute::Populated {
