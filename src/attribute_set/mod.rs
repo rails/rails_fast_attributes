@@ -9,12 +9,13 @@ mod ruby_glue;
 
 #[derive(Default, Clone, PartialEq, Eq)]
 pub struct AttributeSet {
+    ruby_self: Option<ffi::VALUE>,
     attributes: IndexMap<ffi::ID, Attribute>,
 }
 
 impl AttributeSet {
     pub fn new(attributes: IndexMap<ffi::ID, Attribute>) -> Self {
-        Self { attributes }
+        Self { ruby_self: None, attributes }
     }
 
     fn each_value<'a, F: Fn(&'a Attribute)>(&'a self, f: F) {

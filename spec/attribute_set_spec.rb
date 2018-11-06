@@ -318,6 +318,19 @@ module ActiveModel
       expect { attributes.reset(:foo) }.to raise_error(RuntimeError)
     end
 
+    specify "attribute points to parent when using .new" do
+      set = AttributeSet.new(foo: Attribute.from_database(:foo, '3939', Type::String.new))
+      attribute = set[:foo]
+      expect(attribute.instance_variable_get(:@_parent_attribute_set)).to eq(set)
+    end
+
+    specify "attribute points to parent when built from builder" do
+      builder = AttributeSet::Builder.new(foo: Type::Value.new)
+      set = builder.build_from_database(foo: nil)
+      attribute = set[:foo]
+      expect(attribute.instance_variable_get(:@_parent_attribute_set)).to eq(set)
+    end
+
     def save_value_from_each_value
       builder = AttributeSet::Builder.new(foo: Type::Integer.new)
       attributes = builder.build_from_database(foo: "1" * 200)
