@@ -282,8 +282,10 @@ extern "C" fn accessed(this: ffi::VALUE) -> ffi::VALUE {
 
 extern "C" fn map(this: ffi::VALUE) -> ffi::VALUE {
     let this = unsafe { get_struct::<AttributeSet>(this) };
+    let keep_alive = unsafe { ffi::rb_ary_new_capa(this.attributes.len() as isize) };
     this.map(|attr| unsafe {
         let new_attr = ffi::rb_yield(attr.as_ruby());
+        ffi::rb_ary_push(keep_alive, new_attr);
         get_struct::<Attribute>(new_attr).clone()
     }).into_ruby()
 }
