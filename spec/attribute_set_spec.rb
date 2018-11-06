@@ -249,6 +249,25 @@ module ActiveModel
       expect(new_attributes.fetch_value(:bar)).to eq(3)
     end
 
+    specify "map into unrelated attributes" do
+      # Implementation of #map needs to be careful to keep the return value from previous iterations
+      # reachable by GC.
+      name_to_type = {}
+      100.times { |name| name_to_type[name.to_s.to_sym] = Type::Integer.new }
+      name_to_value = name_to_type.transform_values { '10' }
+
+      builder = AttributeSet::Builder.new(name_to_type)
+      attributes = builder.build_from_database(name_to_value)
+
+      new_attributes = nil
+      new_attributes = attributes.map do |attr|
+        GC.start
+        Attribute.from_database(attr.name.clone, String.new('7' * 2000), Type::Integer.new)
+      end
+
+      100.times { |key| expect(new_attributes.fetch_value(key.to_s.to_sym)).to eq(Integer('7' * 2000)) }
+    end
+
     specify "comparison for equality is correctly implemented" do
       builder = AttributeSet::Builder.new(foo: Type::Integer.new, bar: Type::Integer.new)
       attributes = builder.build_from_database(foo: "1", bar: "2")
@@ -297,6 +316,74 @@ module ActiveModel
       expect { attributes.write_from_database(:foo, 1) }.to raise_error(RuntimeError)
       expect { attributes.write_cast_value(:foo, 1) }.to raise_error(RuntimeError)
       expect { attributes.reset(:foo) }.to raise_error(RuntimeError)
+    end
+
+    def save_value_from_each_value
+      builder = AttributeSet::Builder.new(foo: Type::Integer.new)
+      attributes = builder.build_from_database(foo: "1" * 200)
+      saved_attribute = nil
+      attributes.each_value { |attribute| saved_attribute = attribute }
+      saved_attribute
+    end
+
+    specify "attribute from #each_value keeps the set alive" do
+      attribute = save_value_from_each_value
+      1000.times { save_value_from_each_value }
+      GC.start
+      expect(attribute.value).to eq(Integer("1" * 200))
+    end
+
+    def save_value_from_fetch
+      builder = AttributeSet::Builder.new(foo: Type::Integer.new)
+      attributes = builder.build_from_database(foo: "1" * 200)
+      attributes.fetch(:foo)
+    end
+
+    specify "attribute from #fetch keeps the set alive" do
+      attribute = save_value_from_fetch
+      1000.times { save_value_from_fetch }
+      GC.start
+      expect(attribute.value).to eq(Integer("1" * 200))
+    end
+
+    def run_except
+      builder = AttributeSet::Builder.new(foo: Type::Integer.new)
+      attributes = builder.build_from_database(foo: "1" * 200)
+      attributes.except(:bar)
+    end
+
+    specify "attributes from #except keeps the set alive" do
+      attribute = run_except[:foo]
+      1000.times { run_except }
+      GC.start
+      expect(attribute.value).to eq(Integer("1" * 200))
+    end
+
+    def run_get
+      builder = AttributeSet::Builder.new(foo: Type::Integer.new)
+      attributes = builder.build_from_database(foo: "1" * 200)
+      # for some reason the GC doesn't collect the set when we do `attributes[:foo]`
+      attributes.send(:[], :foo)
+    end
+
+    specify "attributes from #[] keeps the set alive" do
+      attribute = run_get
+      100.times { run_get }
+      GC.start
+      expect(attribute.value).to eq(Integer("1" * 200))
+    end
+
+    def run_dump_data
+      builder = AttributeSet::Builder.new(foo: Type::Integer.new)
+      attributes = builder.build_from_database(foo: "1" * 200)
+      attributes._dump_data.first
+    end
+
+    specify "attributes from #_dump_data" do
+      attribute = run_dump_data
+      100.times { run_dump_data }
+      GC.start
+      expect(attribute.value).to eq(Integer("1" * 200))
     end
   end
 end
