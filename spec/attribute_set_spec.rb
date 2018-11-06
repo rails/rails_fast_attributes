@@ -37,13 +37,43 @@ module ActiveModel
       expect(attributes[:bar].name).to eq(:bar)
     end
 
-    specify "attribute identity" do
+    specify "attribute identity #write_from_database" do
       builder = AttributeSet::Builder.new(foo: Type::Float.new)
       set = builder.build_from_database(foo: "3.3")
       attribute = set[:foo]
 
       expect(attribute.value_before_type_cast).to eq("3.3") # sanity
       set.write_from_database(:foo, 2)
+      expect(attribute.value_before_type_cast).to eq(2)
+    end
+
+    specify "attribute identity #write_from_user" do
+      builder = AttributeSet::Builder.new(foo: Type::Float.new)
+      set = builder.build_from_database(foo: "3.3")
+      attribute = set[:foo]
+
+      expect(attribute.value_before_type_cast).to eq("3.3") # sanity
+      set.write_from_user(:foo, 2)
+      expect(attribute.value_before_type_cast).to eq(2)
+    end
+
+    specify "attribute identity #write_cast_value" do
+      builder = AttributeSet::Builder.new(foo: Type::Float.new)
+      set = builder.build_from_database(foo: "3.3")
+      attribute = set[:foo]
+
+      expect(attribute.value_before_type_cast).to eq("3.3") # sanity
+      set.write_cast_value(:foo, 2)
+      expect(attribute.value).to eq(2)
+    end
+
+    specify "attribute identity #[]=" do
+      builder = AttributeSet::Builder.new(foo: Type::Float.new)
+      set = builder.build_from_database(foo: "3.3")
+      attribute = set[:foo]
+
+      expect(attribute.value_before_type_cast).to eq("3.3") # sanity
+      set[:foo] = Attribute::from_database(:foo, 2, Type::Float.new)
       expect(attribute.value_before_type_cast).to eq(2)
     end
 
