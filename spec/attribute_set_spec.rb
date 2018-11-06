@@ -37,6 +37,19 @@ module ActiveModel
       expect(attributes[:bar].name).to eq(:bar)
     end
 
+    specify "[]= use after free" do
+      set = AttributeSet.new({foo: Attribute.from_database(:foo, "secret message", Type::String.new)})
+      attribute = set[:foo]
+
+      10000.times do |i| # force a reallocation
+        name = i.to_s.to_sym
+        set[name] = Attribute.from_database(name, 1, Type::Integer.new)
+      end
+
+      expect(attribute.value).to eq("secret message")
+      expect(attribute.value_before_type_cast).to eq("secret message")
+    end
+
     specify "attribute identity #write_from_database" do
       builder = AttributeSet::Builder.new(foo: Type::Float.new)
       set = builder.build_from_database(foo: "3.3")
