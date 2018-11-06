@@ -37,6 +37,16 @@ module ActiveModel
       expect(attributes[:bar].name).to eq(:bar)
     end
 
+    specify "attribute identity" do
+      builder = AttributeSet::Builder.new(foo: Type::Float.new)
+      set = builder.build_from_database(foo: "3.3")
+      attribute = set[:foo]
+
+      expect(attribute.value_before_type_cast).to eq("3.3") # sanity
+      set.write_from_database(:foo, 2)
+      expect(attribute.value_before_type_cast).to eq(2)
+    end
+
     specify "duping creates a new hash, but does not dup the attributes" do
       builder = AttributeSet::Builder.new(foo: Type::Integer.new, bar: Type::String.new)
       attributes = builder.build_from_database(foo: 1, bar: "foo")
