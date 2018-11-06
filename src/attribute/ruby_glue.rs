@@ -461,7 +461,7 @@ extern "C" fn encode_with(this: ffi::VALUE, coder: ffi::VALUE) -> ffi::VALUE {
                 id!("[]="),
                 2,
                 rstr!("original_attribute"),
-                orig.as_ruby(),
+                orig.clone().into_ruby(),
             );
         }
 
@@ -625,7 +625,7 @@ fn dump_source(source: &'static Source) -> ffi::VALUE {
         UserProvidedDefault(_) => 4,
     };
     let original_attr = match *source {
-        FromUser(ref orig) | UserProvidedDefault(Some(ref orig)) => orig.as_ruby(),
+        FromUser(ref orig) | UserProvidedDefault(Some(ref orig)) => orig.clone().into_ruby(),
         _ => unsafe { ffi::Qnil },
     };
     let discriminant = unsafe { ffi::I322NUM(discriminant) };
